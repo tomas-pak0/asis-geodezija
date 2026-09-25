@@ -21,6 +21,9 @@
   <div class="card"><span class="label">GPS / palydovai</span><strong id="gps">Naršyklėje neprieinama</strong></div>
   <div class="card"><span class="label">Internetas</span><strong id="network">–</strong></div>
  </section>
+ <div class="actions"><button id="share" type="button" disabled>Bendrinti koordinates</button></div>
+ <p id="shareStatus" class="hint" role="status"></p>
+ <textarea id="sharePreview" class="share-preview" aria-label="Vietos tekstas kopijavimui" readonly hidden></textarea>
  <section class="card alignment" aria-label="Kelio ašies importas">
   <h2>Kelio ašis</h2>
   <div class="options"><label>Ašies failas (LandXML, GeoJSON, GPX, CSV)<input id="alignmentFile" type="file" accept=".xml,.geojson,.json,.gpx,.csv,text/xml,application/xml"></label>
@@ -32,8 +35,8 @@
   <button id="clearAlignment" type="button" class="subtle" hidden>Pašalinti ašį</button>
  </section>
  <div class="actions"><button id="start" type="button">Rodyti vietą</button><button id="stop" type="button" class="subtle" disabled>Sustabdyti</button></div>
- <p class="hint">Piketažas rodomas 1 m žingsniu. Atstumas iki ašies, kai jis mažesnis nei 15 m, rodomas 0,01 m žingsniu; toliau – 1 m žingsniu. LKS94 skaičiuojamos iš telefono WGS84 vietos; rodomi skaitmenys po kablelio nereiškia tokio GPS tikslumo. Ašis ir koordinatės lieka šiame įrenginyje. Žemėlapio fonui reikia interneto.</p>
+ <p class="hint">Piketažas rodomas 1 m žingsniu. Atstumas iki ašies, kai jis mažesnis nei 15 m, rodomas 0,01 m žingsniu; toliau – 1 m žingsniu. LKS94 skaičiuojamos iš telefono WGS84 vietos; rodomi skaitmenys po kablelio nereiškia tokio GPS tikslumo. Ašis ir koordinatės lieka šiame įrenginyje, kol pats nepasirenki jų bendrinti. Žemėlapio fonui reikia interneto.</p>
  <p class="hint"><a href="privacy.html">Privatumo informacija</a></p>
 </main>
-<script src="vendor/leaflet/leaflet.js"></script><script src="alignment.js?v=5"></script><script src="app.js?v=5"></script>
+<script src="vendor/leaflet/leaflet.js"></script><script src="alignment.js?v=5"></script><script src="app.js?v=6"></script>
 </body></html>

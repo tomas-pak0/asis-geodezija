@@ -48,20 +48,25 @@ function showAlignment(points,name,startMetres){
  $('alignmentStatus').textContent=name+' · '+Math.round(line.total)+' m · piketai pažymėti kas 100 m.';
  if(last)updateAlignment(last.coords);
 }
-function updateAlignment(c){
+function alignmentDetails(c){
  if(!alignment)return;
  const r=KurAsAlignment.nearest(alignment,[c.latitude,c.longitude]);if(!r)return;
  const station='PK '+KurAsAlignment.station(alignment.startMetres+r.metres,stationGroup());
  const distance=r.offset<15?r.offset.toFixed(2).replace('.',','):String(Math.round(r.offset));
  const side=r.offset<.005?'ašyje':r.side==='dešinėje'?'d':'k';
  const offset=distance+' m'+(side==='ašyje'?' (ašyje)':' ('+side+')');
+ return {station,offset,point:r.point};
+}
+function updateAlignment(c){
+ const details=alignmentDetails(c);if(!details)return;
+ const {station,offset,point}=details;
  $('stationValue').textContent=station;$('offsetValue').textContent=offset;
  if(pin){const label=station+' · '+offset;
   if(pin.getTooltip())pin.setTooltipContent(label);
   else pin.bindTooltip(label,{permanent:true,direction:'auto',offset:[12,0],className:'alignment-pin-label',interactive:false});
  }
  if(!nearestLine)nearestLine=L.polyline([],{color:'#f7c85e',weight:2,dashArray:'5,5',interactive:false}).addTo(map);
- nearestLine.setLatLngs([[c.latitude,c.longitude],r.point]);
+ nearestLine.setLatLngs([[c.latitude,c.longitude],point]);
 }
 function useAlignment(points,name,startMetres){
  if(!Number.isFinite(startMetres)||Math.abs(startMetres)>1000000)throw Error('Pradinis piketas turi būti nuo −1 000 000 iki 1 000 000 m.');
@@ -103,14 +108,46 @@ try{const saved=JSON.parse(localStorage.getItem('asis-alignment'));if(saved?.poi
 catch{localStorage.removeItem('asis-alignment')}
 function ageLabel(seconds){if(seconds<60)return seconds+' s';if(seconds<3600)return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');return Math.floor(seconds/3600)+':'+String(Math.floor(seconds/60)%60).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')}
 setInterval(()=>{if(last){const age=Math.max(0,Math.floor((Date.now()-last.timestamp)/1000));$('updated').textContent='Matavimas '+new Date(last.timestamp).toLocaleTimeString('lt-LT')+' · prieš '+ageLabel(age);if(age>30)$('live').textContent='Duomenys neatnaujinami'}},1000);
+function lksText(c){
+ if(c.latitude<53.89||c.latitude>56.45||c.longitude<19.02||c.longitude>26.82)return 'Už LKS94 taikymo srities';
+ const [north,east]=KurAsAlignment.toLks94(c.latitude,c.longitude);
+ return 'X '+north.toFixed(2)+' m · Y '+east.toFixed(2)+' m';
+}
+function shareText(p){
+ const c=p.coords;
+ const lines=['Ašis · vietos koordinatės',
+  'Matavimas: '+new Date(p.timestamp).toLocaleString('lt-LT'),
+  'WGS84: '+c.latitude.toFixed(6)+', '+c.longitude.toFixed(6),
+  'LKS94 (EPSG:3346): '+lksText(c)];
+ const details=alignmentDetails(c);
+ if(details)lines.push('Piketažas: '+details.station,'Atstumas iki ašies: '+details.offset);
+ return lines.join('\n');
+}
+$('share').onclick=async()=>{
+ if(!last)return;
+ const content=shareText(last);
+ $('sharePreview').hidden=true;
+ if(window.AsisNativeShare){
+  window.AsisNativeShare.send(content);
+  $('shareStatus').textContent='Pasirink, kur siųsti koordinates.';
+  return;
+ }
+ if(navigator.share){
+  try{await navigator.share({title:'Ašis · vietos koordinatės',text:content});$('shareStatus').textContent='Vietos tekstas perduotas bendrinimui.';return}
+  catch(error){if(error.name==='AbortError')return}
+ }
+ try{await navigator.clipboard.writeText(content);$('shareStatus').textContent='Koordinatės nukopijuotos. Įklijuok jas į SMS, žinutę ar el. laišką.'}
+ catch{
+  const preview=$('sharePreview');preview.value=content;preview.hidden=false;preview.focus();preview.select();
+  $('shareStatus').textContent='Pažymėtas tekstas paruoštas kopijuoti.';
+ }
+};
 function onPosition(p){
  if(last&&p.timestamp<last.timestamp)return;
  last=p;const c=p.coords,point=[c.latitude,c.longitude];
  $('coords').textContent=c.latitude.toFixed(6)+', '+c.longitude.toFixed(6);
- if(c.latitude>=53.89&&c.latitude<=56.45&&c.longitude>=19.02&&c.longitude<=26.82){
-  const [north,east]=KurAsAlignment.toLks94(c.latitude,c.longitude);
-  $('lksCoords').textContent='X '+north.toFixed(2)+' · Y '+east.toFixed(2)+' m';
- }else $('lksCoords').textContent='Už LKS94 taikymo srities';
+ $('lksCoords').textContent=lksText(c);
+ $('share').disabled=false;
  $('accuracy').textContent=Number.isFinite(c.accuracy)?'Apie ±'+Math.round(c.accuracy)+' m':'Nėra duomenų';
  $('live').textContent='Vieta atnaujinama';$('status').textContent='Rodoma naujausia telefono pateikta vieta.';
  if(!pin)pin=L.marker(point,{icon:markerIcon}).addTo(map);else pin.setLatLng(point);

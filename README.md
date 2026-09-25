@@ -10,6 +10,7 @@ Atskira geodezinė Android programėlė: vieta žemėlapyje, GNSS palydovai, int
 - Atstumas iki ašies su (k)/(d) pagal ašies kryptį: iki 15 m rodomi du skaitmenys po kablelio, nuo 15 m – sveiki metrai. Skaitmenys po kablelio nereiškia centimetro GPS tikslumo.
 - 100 m piketai, raudona ašis ir atkarpa iki artimiausio ašies taško.
 - Matomų ir naudojamų GNSS palydovų skaičius, jų vidutinis C/N₀; interneto tipas ir mobiliojo signalo lygis, jei leidžia telefonas bei naudotojo leidimai.
+- Paspaudus „Bendrinti koordinates“, Android atveria sistemos bendrinimo meniu tekstui nusiųsti SMS, žinučių ar el. pašto programėle. Tekste yra matavimo laikas, WGS84 ir LKS94; jei ašis įkelta, pridedamas piketažas bei atstumas su (d)/(k). Naršyklėje naudojamas įrenginio bendrinimas, o jei jis nepasiekiamas, tekstas nukopijuojamas arba parodomas kopijavimui.
 
 Ašis priima Civil 3D LandXML (LKS94 arba WGS84), WGS84 GeoJSON, GPX ir CSV (`lat,lon` arba `latitude,longitude`). `StaEquation` lūžiai šioje versijoje nepalaikomi. Ašies failas apdorojamas įrenginyje, o taškai išsaugomi vietinėje programėlės saugykloje, jei telpa į jos limitą. Žemėlapio fonas iš OpenStreetMap reikalauja interneto; koordinatės ir ašies skaičiavimas veikia ir be fono.
 
@@ -28,4 +29,4 @@ Atverkite `android/` katalogą Android Studio su JDK 17, Android SDK 36 ir Gradl
 
 Google Play leidimui reikės nuoseklaus pasirašymo rakto, pasirašyto Android App Bundle (`.aab`), privatumo politikos viešo URL bei Play Console deklaracijų. Debug APK nėra Play leidimas. Pagalbinis `privacy.html` tekstas gali būti paskelbtas kaip privatumo politikos puslapis.
 
-Vietos matavimas veikia tik kai programėlė atidaryta. Programėlė nesiunčia vietos kitam asmeniui ar į savo serverį. Žemėlapio plytelių užklausos siunčiamos OpenStreetMap, todėl plytelių serveris gali žinoti peržiūrimą žemėlapio sritį.
+Vietos matavimas veikia tik kai programėlė atidaryta. Programėlė nesiunčia vietos į savo serverį ir automatiškai nebendrina jos su kitu asmeniu; pasirinkus bendrinimą, vietos tekstas perduodamas naudotojo pasirinktai programėlei. Žemėlapio plytelių užklausos siunčiamos OpenStreetMap, todėl plytelių serveris gali žinoti peržiūrimą žemėlapio sritį.

@@ -65,6 +65,18 @@ public class MainActivity extends Activity {
             locationRequested=false;stopLocation();
         });}
     }
+    private final class NativeShare {
+        @JavascriptInterface public void send(String text){runOnUiThread(()->{
+            if(webView==null||!PAGE.equals(webView.getUrl())||text==null||text.isEmpty()||text.length()>2000)return;
+            Intent send=new Intent(Intent.ACTION_SEND);
+            send.setType("text/plain");
+            send.putExtra(Intent.EXTRA_TEXT,text);
+            try{startActivity(Intent.createChooser(send,"Bendrinti koordinates"));}
+            catch(ActivityNotFoundException ignored){
+                sendToPage("document.getElementById('shareStatus').textContent='Nėra programėlės tekstui bendrinti.';");
+            }
+        });}
+    }
     private String gpsText="Laukiama vietos leidimo", signalText="Neprieinamas", networkText="Tikrinama…";
     private final GnssStatus.Callback gnssCallback=new GnssStatus.Callback() {
         @Override public void onStarted(){gpsText="Ieškoma palydovų…";showTelemetry();}
@@ -93,6 +105,7 @@ public class MainActivity extends Activity {
         setContentView(frame);
         WebSettings settings=webView.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);
         webView.addJavascriptInterface(new NativeLocation(),"AsisNativeLocation");
+        webView.addJavascriptInterface(new NativeShare(),"AsisNativeShare");
         settings.setGeolocationEnabled(true);settings.setAllowFileAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         webView.setWebViewClient(new WebViewClient(){

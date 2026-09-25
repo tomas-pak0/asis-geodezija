@@ -11,6 +11,7 @@ Atskira geodezinė Android programėlė: vieta žemėlapyje, GNSS palydovai, int
 - 100 m piketai, raudona ašis ir atkarpa iki artimiausio ašies taško.
 - Matomų ir naudojamų GNSS palydovų skaičius, jų vidutinis C/N₀; interneto tipas ir mobiliojo signalo lygis, jei leidžia telefonas bei naudotojo leidimai.
 - Paspaudus „Bendrinti koordinates“, Android atveria sistemos bendrinimo meniu tekstui nusiųsti SMS, žinučių ar el. pašto programėle. Tekste yra matavimo laikas, WGS84 ir LKS94; jei ašis įkelta, pridedamas piketažas bei atstumas su (d)/(k). Naršyklėje naudojamas įrenginio bendrinimas, o jei jis nepasiekiamas, tekstas nukopijuojamas arba parodomas kopijavimui.
+- Galima įvesti atskirą LKS94 tašką (X – šiaurė, Y – rytai). Žemėlapyje rodomas mėlynas taikinys ir linija nuo paskutinės telefono vietos, skaičiuojamas plokštuminis atstumas bei azimutas pagal LKS94 tinklo šiaurę. Taškinis tikslas išsaugomas įrenginyje ir veikia nepriklausomai nuo kelio ašies.
 
 Ašis priima Civil 3D LandXML (LKS94 arba WGS84), WGS84 GeoJSON, GPX ir CSV (`lat,lon` arba `latitude,longitude`). `StaEquation` lūžiai šioje versijoje nepalaikomi. Ašies failas apdorojamas įrenginyje, o taškai išsaugomi vietinėje programėlės saugykloje, jei telpa į jos limitą. Žemėlapio fonas iš OpenStreetMap reikalauja interneto; koordinatės ir ašies skaičiavimas veikia ir be fono.
 

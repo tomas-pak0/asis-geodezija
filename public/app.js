@@ -5,7 +5,9 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',maxZoom:19
 }).addTo(map);
 const markerIcon=L.divIcon({className:'',html:'<span class="position-marker"></span>',iconSize:[26,26],iconAnchor:[13,13]});
+const targetIcon=L.divIcon({className:'target-marker-icon',html:'<span class="target-marker"></span>',iconSize:[26,26],iconAnchor:[13,13]});
 let watcher=null,last=null,pin=null,follow=true,alignment=null,alignmentLayer=null,stationLayer=null,nearestLine=null,xmlAlignments=null,xmlFileName='';
+let target=null,targetMarker=null,targetLine=null,targetFitOnFirstFix=false;
 const stationGroup=()=>Number($('stationFormat').value);
 function connectivity(){
  const c=navigator.connection;
@@ -23,8 +25,8 @@ function stationVisibility(){
  else if(map.hasLayer(stationLayer))stationLayer.remove();
 }
 map.on('zoomend',stationVisibility);
-map.on('dragstart',()=>{follow=false});
-map.on('zoomstart',event=>{if(event.originalEvent)follow=false});
+map.on('dragstart',()=>{follow=false;targetFitOnFirstFix=false});
+map.on('zoomstart',event=>{if(event.originalEvent){follow=false;targetFitOnFirstFix=false}});
 function showAlignment(points,name,startMetres){
  const line=KurAsAlignment.prepare(points);
  alignmentLayer?.remove();stationLayer?.remove();nearestLine?.remove();nearestLine=null;
@@ -104,8 +106,59 @@ $('clearAlignment').onclick=()=>{
  $('clearAlignment').hidden=true;$('stationValue').textContent='Įkelk ašį';$('offsetValue').textContent='–';
  $('alignmentStatus').textContent='Ašis pašalinta. Gali įkelti kitą failą.';localStorage.removeItem('asis-alignment');
 };
+function parseLksNumber(value){
+ const clean=value.trim().replace(/\s/g,'').replace(',','.');
+ return /^\d+(?:\.\d+)?$/.test(clean)?Number(clean):NaN;
+}
+function updateTarget(c){
+ if(!target)return;
+ if(!c){$('targetDistance').textContent='Laukiama vietos';$('targetBearing').textContent='–';return}
+ targetLine.setLatLngs([[c.latitude,c.longitude],[target.latitude,target.longitude]]);
+ if(c.latitude<53.89||c.latitude>56.45||c.longitude<19.02||c.longitude>26.82){
+  $('targetDistance').textContent='Už LKS94 srities';$('targetBearing').textContent='–';return;
+ }
+ const [north,east]=KurAsAlignment.toLks94(c.latitude,c.longitude);
+ const deltaNorth=target.x-north,deltaEast=target.y-east,distance=Math.hypot(deltaNorth,deltaEast);
+ $('targetDistance').textContent=distance>=1000?(distance/1000).toFixed(2).replace('.',',')+' km':distance.toFixed(1).replace('.',',')+' m';
+ if(distance<1){$('targetBearing').textContent='Taškas ties tavo vieta';return}
+ const degrees=(Math.atan2(deltaEast,deltaNorth)*180/Math.PI+360)%360;
+ const directions=['Š','ŠR','R','PR','P','PV','V','ŠV'];
+ $('targetBearing').textContent=degrees.toFixed(0)+'° ('+directions[Math.round(degrees/45)%8]+')';
+}
+function showTarget(x,y,save=true){
+ if(!Number.isFinite(x)||!Number.isFinite(y))throw Error('Įvesk skaitines X ir Y koordinates.');
+ const [latitude,longitude]=KurAsAlignment.lks94(x,y);
+ if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||latitude<53.89||latitude>56.45||longitude<19.02||longitude>26.82)
+  throw Error('Taškas nepatenka į LKS94 taikymo sritį Lietuvoje. Patikrink X ir Y eiliškumą.');
+ target={x,y,latitude,longitude};
+ const point=[latitude,longitude];
+ if(!targetMarker)targetMarker=L.marker(point,{icon:targetIcon}).addTo(map).bindTooltip('Tikslas',{permanent:true,direction:'top',offset:[0,-12]});
+ else targetMarker.setLatLng(point);
+ if(!targetLine)targetLine=L.polyline([],{color:'#72d7ff',weight:3,dashArray:'7,6',interactive:false}).addTo(map);
+ $('targetX').value=String(x);$('targetY').value=String(y);$('clearTarget').hidden=false;
+ $('targetStatus').textContent=last?'Taškas žemėlapyje. Atstumas skaičiuojamas nuo telefono vietos.':'Taškas žemėlapyje. Laukiama telefono vietos matavimo.';
+ updateTarget(last?.coords);
+ if(last){map.fitBounds(L.latLngBounds([[last.coords.latitude,last.coords.longitude],point]),{padding:[45,45],maxZoom:17});follow=false}
+ else{map.setView(point,16);targetFitOnFirstFix=true}
+ if(save)try{localStorage.setItem('asis-target',JSON.stringify({x,y}))}
+ catch{$('targetStatus').textContent+=' Nepavyko išsaugoti taško šiame įrenginyje.'}
+}
+$('targetForm').onsubmit=event=>{
+ event.preventDefault();
+ try{showTarget(parseLksNumber($('targetX').value),parseLksNumber($('targetY').value))}
+ catch(error){$('targetStatus').textContent=error.message}
+};
+$('clearTarget').onclick=()=>{
+ target=null;targetFitOnFirstFix=false;targetMarker?.remove();targetLine?.remove();targetMarker=targetLine=null;
+ $('targetX').value='';$('targetY').value='';$('clearTarget').hidden=true;
+ $('targetDistance').textContent='–';$('targetBearing').textContent='–';
+ $('targetStatus').textContent='Taškas pašalintas. Gali įvesti kitą.';
+ localStorage.removeItem('asis-target');
+};
 try{const saved=JSON.parse(localStorage.getItem('asis-alignment'));if(saved?.points){$('stationStart').value=saved.startMetres;showAlignment(saved.points,saved.name,saved.startMetres)}}
 catch{localStorage.removeItem('asis-alignment')}
+try{const saved=JSON.parse(localStorage.getItem('asis-target'));if(saved)showTarget(Number(saved.x),Number(saved.y),false)}
+catch{localStorage.removeItem('asis-target')}
 function ageLabel(seconds){if(seconds<60)return seconds+' s';if(seconds<3600)return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');return Math.floor(seconds/3600)+':'+String(Math.floor(seconds/60)%60).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')}
 setInterval(()=>{if(last){const age=Math.max(0,Math.floor((Date.now()-last.timestamp)/1000));$('updated').textContent='Matavimas '+new Date(last.timestamp).toLocaleTimeString('lt-LT')+' · prieš '+ageLabel(age);if(age>30)$('live').textContent='Duomenys neatnaujinami'}},1000);
 function lksText(c){
@@ -152,7 +205,11 @@ function onPosition(p){
  $('live').textContent='Vieta atnaujinama';$('status').textContent='Rodoma naujausia telefono pateikta vieta.';
  if(!pin)pin=L.marker(point,{icon:markerIcon}).addTo(map);else pin.setLatLng(point);
  updateAlignment(c);
- if(follow)map.setView(point,map.getZoom()<14?17:map.getZoom(),{animate:true});
+ updateTarget(c);
+ if(targetFitOnFirstFix&&follow&&target){
+  map.fitBounds(L.latLngBounds([point,[target.latitude,target.longitude]]),{padding:[45,45],maxZoom:17});
+  follow=false;targetFitOnFirstFix=false;
+ }else if(follow)map.setView(point,map.getZoom()<14?17:map.getZoom(),{animate:true});
 }
 $('centerMap').onclick=()=>{
  follow=true;

@@ -24,6 +24,19 @@
  <div class="actions"><button id="share" type="button" disabled>Bendrinti koordinates</button></div>
  <p id="shareStatus" class="hint" role="status"></p>
  <textarea id="sharePreview" class="share-preview" aria-label="Vietos tekstas kopijavimui" readonly hidden></textarea>
+ <section class="card target-section" aria-label="Taškas pagal LKS94">
+  <h2>Taškas pagal LKS94</h2>
+  <form id="targetForm">
+   <div class="options">
+    <label>X · šiaurė, m<input id="targetX" type="text" inputmode="decimal" autocomplete="off" placeholder="6125330,97" required></label>
+    <label>Y · rytai, m<input id="targetY" type="text" inputmode="decimal" autocomplete="off" placeholder="549904,73" required></label>
+   </div>
+   <div class="actions"><button type="submit">Rodyti tašką</button><button id="clearTarget" type="button" class="subtle" hidden>Pašalinti tašką</button></div>
+  </form>
+  <p id="targetStatus" class="hint" role="status">Įvesk LKS94 X ir Y koordinates.</p>
+  <div class="target-values"><div><span class="label">Atstumas iki taško</span><strong id="targetDistance">–</strong></div><div><span class="label">Kryptis į tašką</span><strong id="targetBearing">–</strong></div></div>
+  <p class="hint">Atstumas ir kampas skaičiuojami LKS94 plokštumoje pagal telefono vietą. 0° – tinklo šiaurė; tikslumą riboja telefono GPS.</p>
+ </section>
  <section class="card alignment" aria-label="Kelio ašies importas">
   <h2>Kelio ašis</h2>
   <div class="options"><label>Ašies failas (LandXML, GeoJSON, GPX, CSV)<input id="alignmentFile" type="file" accept=".xml,.geojson,.json,.gpx,.csv,text/xml,application/xml"></label>
@@ -38,5 +51,5 @@
  <p class="hint">Piketažas rodomas 1 m žingsniu. Atstumas iki ašies, kai jis mažesnis nei 15 m, rodomas 0,01 m žingsniu; toliau – 1 m žingsniu. LKS94 skaičiuojamos iš telefono WGS84 vietos; rodomi skaitmenys po kablelio nereiškia tokio GPS tikslumo. Ašis ir koordinatės lieka šiame įrenginyje, kol pats nepasirenki jų bendrinti. Žemėlapio fonui reikia interneto.</p>
  <p class="hint"><a href="privacy.html">Privatumo informacija</a></p>
 </main>
-<script src="vendor/leaflet/leaflet.js"></script><script src="alignment.js?v=5"></script><script src="app.js?v=6"></script>
+<script src="vendor/leaflet/leaflet.js"></script><script src="alignment.js?v=5"></script><script src="app.js?v=7"></script>
 </body></html>

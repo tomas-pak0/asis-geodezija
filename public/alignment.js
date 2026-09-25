@@ -94,7 +94,7 @@
       if(!coords)throw Error('Neatpažinta ašies koordinačių sistema. Palaikoma LKS94 (X,Y) arba WGS84.');
       const points=check(raw.map(p=>coords==='LKS94'?lks94(p[0],p[1]):p));
       const start=Number(alignment.getAttribute('staStart')||0)*unit;
-      if(!Number.isFinite(start)||start<0)throw Error('Neteisingas pradinis piketas (staStart).');
+      if(!Number.isFinite(start)||Math.abs(start)>1000000)throw Error('Pradinis piketas (staStart) turi būti nuo −1 000 000 iki 1 000 000 m.');
       list.push({name:alignment.getAttribute('name')||'Ašis '+(list.length+1),points,startMetres:start,coords});
       }catch(error){warnings.push((alignment.getAttribute('name')||'Ašis')+': '+error.message)}
     }
@@ -164,6 +164,9 @@
     const span=line.lengths[i]-line.lengths[i-1],t=span?(d-line.lengths[i-1])/span:0;
     return line.points[i-1].map((n,j)=>n+t*(line.points[i][j]-n));
   }
-  function station(metres,group=100){const v=Math.round(metres),g=group===1000?1000:100;return Math.floor(v/g)+'+'+String(v%g).padStart(g===1000?3:2,'0')}
+  function station(metres,group=100){
+    const rounded=Math.round(Math.abs(metres)),g=group===1000?1000:100;
+    return (metres<0&&rounded>0?'-':'')+Math.floor(rounded/g)+'+'+String(rounded%g).padStart(g===1000?3:2,'0');
+  }
   root.KurAsAlignment={parse,prepare,nearest,at,station,lks94};
 })(typeof window==='undefined'?globalThis:window);

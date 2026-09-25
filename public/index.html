@@ -24,7 +24,7 @@
   <h2>Kelio ašis</h2>
   <div class="options"><label>Ašies failas (LandXML, GeoJSON, GPX, CSV)<input id="alignmentFile" type="file" accept=".xml,.geojson,.json,.gpx,.csv,text/xml,application/xml"></label>
    <label id="alignmentChoiceLabel" hidden>Ašis XML faile<select id="alignmentChoice"></select></label>
-   <label>Pradinis piketas, m<input id="stationStart" type="number" step="1" min="0" value="0" inputmode="numeric"></label>
+   <label>Pradinis piketas, m<input id="stationStart" type="number" step="1" min="-1000000" max="1000000" value="0" inputmode="decimal"></label>
    <label>Piketo formatas<select id="stationFormat"><option value="100">0+00</option><option value="1000">0+000</option></select></label>
   </div>
   <p id="alignmentStatus" class="hint">Įkelk Civil 3D LandXML ašį (LKS94 arba WGS84). Tinka ir WGS84 GeoJSON, GPX bei CSV. Failas saugomas tik šiame įrenginyje.</p>
@@ -34,5 +34,5 @@
  <p class="hint">Piketažas rodomas 1 m žingsniu. Atstumas iki ašies, kai jis mažesnis nei 15 m, rodomas 0,01 m žingsniu; toliau – 1 m žingsniu. Faktinį tikslumą riboja telefono GPS matavimas. Ašis ir koordinatės lieka šiame įrenginyje. Žemėlapio fonui reikia interneto.</p>
  <p class="hint"><a href="privacy.html">Privatumo informacija</a></p>
 </main>
-<script src="vendor/leaflet/leaflet.js"></script><script src="alignment.js"></script><script src="app.js?v=3"></script>
+<script src="vendor/leaflet/leaflet.js"></script><script src="alignment.js?v=4"></script><script src="app.js?v=4"></script>
 </body></html>

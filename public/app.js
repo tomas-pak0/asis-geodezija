@@ -64,7 +64,7 @@ function updateAlignment(c){
  nearestLine.setLatLngs([[c.latitude,c.longitude],r.point]);
 }
 function useAlignment(points,name,startMetres){
- if(!Number.isFinite(startMetres)||startMetres<0||startMetres>1000000)throw Error('Pradinis piketas turi būti nuo 0 iki 1 000 000 m.');
+ if(!Number.isFinite(startMetres)||Math.abs(startMetres)>1000000)throw Error('Pradinis piketas turi būti nuo −1 000 000 iki 1 000 000 m.');
  KurAsAlignment.prepare(points);
  $('stationStart').value=startMetres;showAlignment(points,name,startMetres);
  try{localStorage.setItem('asis-alignment',JSON.stringify({points,name,startMetres}))}

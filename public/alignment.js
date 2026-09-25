@@ -13,6 +13,24 @@
     for(let j=0;j<6;j++)q=Math.asinh(Math.tan(beta))+e*Math.atanh(e*Math.tanh(q));
     return [Math.atan(Math.sinh(q))/rad,(24*rad+Math.asin(Math.tanh(eta)/Math.cos(beta)))/rad];
   }
+  // Invert the existing GRS80 Lithuania TM conversion, preserving its X (north), Y (east) order.
+  function toLks94(latitude,longitude){
+    const [northScale,eastScale]=scales(latitude);
+    let north=latitude*111132,east=500000+(longitude-24)*eastScale*.9998;
+    for(let i=0;i<6;i++){
+      const [lat,lon]=lks94(north,east);
+      const [latN,lonN]=lks94(north+1,east);
+      const [latE,lonE]=lks94(north,east+1);
+      const a=(latN-lat)*northScale,b=(latE-lat)*northScale;
+      const c=(lonN-lon)*eastScale,d=(lonE-lon)*eastScale;
+      const determinant=a*d-b*c;
+      const deltaN=(latitude-lat)*northScale,deltaE=(longitude-lon)*eastScale;
+      const stepN=(deltaN*d-b*deltaE)/determinant,stepE=(a*deltaE-c*deltaN)/determinant;
+      north+=stepN;east+=stepE;
+      if(Math.hypot(stepN,stepE)<.000001)break;
+    }
+    return [north,east];
+  }
   const tag=(el,name)=>el&&[...el.children].find(child=>child.localName===name);
   const children=(el,name)=>[...el.children].filter(child=>child.localName===name);
   function point(el,unit){
@@ -168,5 +186,5 @@
     const rounded=Math.round(Math.abs(metres)),g=group===1000?1000:100;
     return (metres<0&&rounded>0?'-':'')+Math.floor(rounded/g)+'+'+String(rounded%g).padStart(g===1000?3:2,'0');
   }
-  root.KurAsAlignment={parse,prepare,nearest,at,station,lks94};
+  root.KurAsAlignment={parse,prepare,nearest,at,station,lks94,toLks94};
 })(typeof window==='undefined'?globalThis:window);

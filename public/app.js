@@ -107,6 +107,10 @@ function onPosition(p){
  if(last&&p.timestamp<last.timestamp)return;
  last=p;const c=p.coords,point=[c.latitude,c.longitude];
  $('coords').textContent=c.latitude.toFixed(6)+', '+c.longitude.toFixed(6);
+ if(c.latitude>=53.89&&c.latitude<=56.45&&c.longitude>=19.02&&c.longitude<=26.82){
+  const [north,east]=KurAsAlignment.toLks94(c.latitude,c.longitude);
+  $('lksCoords').textContent='X '+north.toFixed(2)+' · Y '+east.toFixed(2)+' m';
+ }else $('lksCoords').textContent='Už LKS94 taikymo srities';
  $('accuracy').textContent=Number.isFinite(c.accuracy)?'Apie ±'+Math.round(c.accuracy)+' m':'Nėra duomenų';
  $('live').textContent='Vieta atnaujinama';$('status').textContent='Rodoma naujausia telefono pateikta vieta.';
  if(!pin)pin=L.marker(point,{icon:markerIcon}).addTo(map);else pin.setLatLng(point);

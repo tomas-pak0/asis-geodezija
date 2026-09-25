@@ -5,6 +5,7 @@ Atskira geodezinė Android programėlė: vieta žemėlapyje, GNSS palydovai, int
 ## Ką rodo
 
 - Koordinatės WGS84, telefono pateikiamas vietos tikslumas.
+- Apytikslės LKS94 (EPSG:3346) koordinatės X (šiaurė), Y (rytai) perskaičiuojamos iš telefono WGS84 vietos Lietuvos teritorijoje; skaitmenys po kablelio nėra telefono GPS tikslumo įvertis.
 - Pasirinktos LandXML ašies piketažas 1 m rodymo žingsniu; 0+00 arba 0+000 formatas. Palaikomi ir neigiami pradiniai piketai (pvz., PK -0+20 arba PK -0+020).
 - Atstumas iki ašies su (k)/(d) pagal ašies kryptį: iki 15 m rodomi du skaitmenys po kablelio, nuo 15 m – sveiki metrai. Skaitmenys po kablelio nereiškia centimetro GPS tikslumo.
 - 100 m piketai, raudona ašis ir atkarpa iki artimiausio ašies taško.

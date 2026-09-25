@@ -13,9 +13,10 @@
  <div class="map-shell"><div id="map" role="region" aria-label="Vieta ir kelio ašis žemėlapyje"></div><button id="centerMap" type="button">Mano vieta</button></div>
  <p id="status" role="status">Paspausk „Rodyti vietą“ ir suteik vietos leidimą.</p>
  <section class="grid" aria-label="Geodeziniai duomenys">
-  <div class="card wide"><span class="label">Piketažas</span><strong id="stationValue">Įkelk ašį</strong></div>
-  <div class="card wide"><span class="label">Atstumas iki ašies</span><strong id="offsetValue">–</strong></div>
+  <div class="card station-card"><span class="label">Piketažas</span><strong id="stationValue">Įkelk ašį</strong></div>
+  <div class="card offset-card"><span class="label">Atstumas iki ašies</span><strong id="offsetValue">–</strong></div>
   <div class="card wide"><span class="label">Koordinatės (WGS84)</span><strong id="coords">–</strong></div>
+  <div class="card wide"><span class="label">Apytikslės koordinatės (LKS94, EPSG:3346)</span><strong id="lksCoords">–</strong></div>
   <div class="card"><span class="label">Vietos tikslumas</span><strong id="accuracy">–</strong></div>
   <div class="card"><span class="label">GPS / palydovai</span><strong id="gps">Naršyklėje neprieinama</strong></div>
   <div class="card"><span class="label">Internetas</span><strong id="network">–</strong></div>
@@ -31,8 +32,8 @@
   <button id="clearAlignment" type="button" class="subtle" hidden>Pašalinti ašį</button>
  </section>
  <div class="actions"><button id="start" type="button">Rodyti vietą</button><button id="stop" type="button" class="subtle" disabled>Sustabdyti</button></div>
- <p class="hint">Piketažas rodomas 1 m žingsniu. Atstumas iki ašies, kai jis mažesnis nei 15 m, rodomas 0,01 m žingsniu; toliau – 1 m žingsniu. Faktinį tikslumą riboja telefono GPS matavimas. Ašis ir koordinatės lieka šiame įrenginyje. Žemėlapio fonui reikia interneto.</p>
+ <p class="hint">Piketažas rodomas 1 m žingsniu. Atstumas iki ašies, kai jis mažesnis nei 15 m, rodomas 0,01 m žingsniu; toliau – 1 m žingsniu. LKS94 skaičiuojamos iš telefono WGS84 vietos; rodomi skaitmenys po kablelio nereiškia tokio GPS tikslumo. Ašis ir koordinatės lieka šiame įrenginyje. Žemėlapio fonui reikia interneto.</p>
  <p class="hint"><a href="privacy.html">Privatumo informacija</a></p>
 </main>
-<script src="vendor/leaflet/leaflet.js"></script><script src="alignment.js?v=4"></script><script src="app.js?v=4"></script>
+<script src="vendor/leaflet/leaflet.js"></script><script src="alignment.js?v=5"></script><script src="app.js?v=5"></script>
 </body></html>

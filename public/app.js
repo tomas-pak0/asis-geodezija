@@ -113,7 +113,12 @@ function onPosition(p){
  updateAlignment(c);
  if(follow)map.setView(point,map.getZoom()<14?17:map.getZoom(),{animate:true});
 }
-$('centerMap').onclick=()=>{follow=true;if(last)map.setView([last.coords.latitude,last.coords.longitude],17,{animate:true});else $('status').textContent='Laukiama vietos duomenų.'};
+$('centerMap').onclick=()=>{
+ follow=true;
+ if(last)map.setView([last.coords.latitude,last.coords.longitude],17,{animate:true});
+ else if(!$('start').disabled)$('start').click();
+ else $('status').textContent='Laukiama vietos duomenų.';
+};
 window.AsisApplyNativePosition=p=>onPosition({timestamp:p.timestamp,coords:p});
 window.AsisApplyNativeLocationError=message=>{
  $('status').textContent=message;

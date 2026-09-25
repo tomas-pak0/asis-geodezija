@@ -6,6 +6,8 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.GnssStatus;
+import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -22,6 +24,7 @@ import android.telephony.TelephonyManager;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.webkit.GeolocationPermissions;
+import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -48,7 +51,20 @@ public class MainActivity extends Activity {
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
     private TelephonyCallback signalCallback;
-    private boolean gnssTracking, pageReady;
+    private boolean gnssTracking, pageReady, locationRequested, locationListening;
+    private Location lastLocation;
+    private final LocationListener locationListener=this::onLocation;
+    private final class NativeLocation {
+        @JavascriptInterface public void start(){runOnUiThread(()->{
+            if(!PAGE.equals(webView.getUrl()))return;
+            locationRequested=true;
+            if(hasLocationPermission())startLocation();
+            else requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION},LOCATION_REQUEST);
+        });}
+        @JavascriptInterface public void stop(){runOnUiThread(()->{
+            locationRequested=false;stopLocation();
+        });}
+    }
     private String gpsText="Laukiama vietos leidimo", signalText="Neprieinamas", networkText="Tikrinama…";
     private final GnssStatus.Callback gnssCallback=new GnssStatus.Callback() {
         @Override public void onStarted(){gpsText="Ieškoma palydovų…";showTelemetry();}
@@ -76,6 +92,7 @@ public class MainActivity extends Activity {
         });
         setContentView(frame);
         WebSettings settings=webView.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);
+        webView.addJavascriptInterface(new NativeLocation(),"AsisNativeLocation");
         settings.setGeolocationEnabled(true);settings.setAllowFileAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         webView.setWebViewClient(new WebViewClient(){
@@ -103,7 +120,7 @@ public class MainActivity extends Activity {
                 if(!ORIGIN.equals(origin)){callback.invoke(origin,false,false);return;}
                 if(hasLocationPermission()){callback.invoke(origin,true,false);startTelemetry();return;}
                 pendingLocation=callback;pendingOrigin=origin;
-                requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.READ_PHONE_STATE},LOCATION_REQUEST);
+                requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION},LOCATION_REQUEST);
             }
         });
         webView.loadUrl(PAGE);
@@ -118,7 +135,62 @@ public class MainActivity extends Activity {
         super.onRequestPermissionsResult(code,permissions,results);
         if(code!=LOCATION_REQUEST)return;
         if(pendingLocation!=null){pendingLocation.invoke(pendingOrigin,hasLocationPermission(),false);pendingLocation=null;pendingOrigin=null;}
+        if(locationRequested){
+            if(hasLocationPermission())startLocation();
+            else {locationRequested=false;sendLocationError("Suteik vietos leidimą programėlei telefono nustatymuose.");
+                sendToPage("window.AsisApplyNativeLocationStopped?.();");}
+        }
         startTelemetry();
+    }
+    private void sendToPage(String script){
+        if(pageReady&&webView!=null)webView.evaluateJavascript(script,null);
+    }
+    private void sendLocationError(String message){
+        sendToPage("window.AsisApplyNativeLocationError?.("+JSONObject.quote(message)+");");
+    }
+    private void onLocation(Location location){
+        if(!locationRequested||!pageReady)return;
+        if(lastLocation!=null&&location.getTime()<lastLocation.getTime())return;
+        lastLocation=location;
+        String payload="{latitude:"+location.getLatitude()+",longitude:"+location.getLongitude()
+            +",accuracy:"+(location.hasAccuracy()?location.getAccuracy():"null")
+            +",timestamp:"+location.getTime()+"}";
+        sendToPage("window.AsisApplyNativePosition?.("+payload+");");
+    }
+    private void startLocation(){
+        if(!locationRequested||locationListening||!hasLocationPermission())return;
+        boolean registered=false;
+        try{
+            if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED
+                &&locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,1000,0,locationListener);
+                registered=true;
+            }
+            if(locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
+                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,1000,0,locationListener);
+                registered=true;
+            }
+            locationListening=registered;
+            if(registered){
+                Location cached=null;
+                if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED)
+                    cached=locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                Location network=locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                if(network!=null&&(cached==null||network.getTime()>cached.getTime()))cached=network;
+                if(cached!=null&&System.currentTimeMillis()-cached.getTime()<60000)onLocation(cached);
+            }else{
+                locationRequested=false;
+                sendLocationError("Įjunk telefono vietos nustatymą (GPS) ir bandyk dar kartą.");
+                sendToPage("window.AsisApplyNativeLocationStopped?.();");
+            }
+        }catch(SecurityException|IllegalArgumentException e){
+            locationRequested=false;stopLocation();
+            sendLocationError("Nepavyko pradėti vietos matavimo. Patikrink vietos leidimą ir GPS.");
+            sendToPage("window.AsisApplyNativeLocationStopped?.();");
+        }
+    }
+    private void stopLocation(){
+        locationManager.removeUpdates(locationListener);locationListening=false;
     }
     private void startTelemetry(){
         if(hasLocationPermission()&&!gnssTracking){
@@ -161,6 +233,7 @@ public class MainActivity extends Activity {
     }
     @Override protected void onResume(){
         super.onResume();if(webView!=null)webView.onResume();
+        if(locationRequested&&pageReady)startLocation();
         if(locationManager!=null&&hasLocationPermission())startTelemetry();
         if(connectivityManager!=null&&networkCallback==null){
             networkCallback=new ConnectivityManager.NetworkCallback(){
@@ -172,12 +245,14 @@ public class MainActivity extends Activity {
         if(connectivityManager!=null)updateNetwork();
     }
     @Override protected void onPause(){
+        stopLocation();
         if(gnssTracking){locationManager.unregisterGnssStatusCallback(gnssCallback);gnssTracking=false;}
         if(signalCallback!=null&&Build.VERSION.SDK_INT>=31){telephonyManager.unregisterTelephonyCallback(signalCallback);signalCallback=null;}
         if(networkCallback!=null){connectivityManager.unregisterNetworkCallback(networkCallback);networkCallback=null;}
         if(webView!=null)webView.onPause();super.onPause();
     }
     @Override protected void onDestroy(){
+        stopLocation();
         if(pendingFiles!=null){pendingFiles.onReceiveValue(null);pendingFiles=null;}
         if(webView!=null)webView.destroy();super.onDestroy();
     }

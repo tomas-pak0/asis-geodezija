@@ -16,6 +16,7 @@ Ašis priima Civil 3D LandXML (LKS94 arba WGS84), WGS84 GeoJSON, GPX ir CSV (`la
 
 - `public/` – nepriklausoma statinė naršyklės versija ir jos ištekliai.
 - `android/` – Android programa, kuri į APK tiesiogiai supakuoja `public/` failus; `WebViewAssetLoader` rodo juos saugiame lokaliame HTTPS adrese. Programėlė nesijungia prie ChatGPT/Sites serverio.
+- Įdiegtos „Android“ programėlės vietą teikia telefono `LocationManager` (GPS ir, jei prieinamas, tinklo matavimai); naršyklinė peržiūra naudoja naršyklės vietos leidimą. Telefonui turi būti įjungta vietos nustatymo paslauga ir suteiktas programėlės vietos leidimas.
 - `scripts/generate_icon.py` – Android ikonų generavimas iš tos pačios vizualinės geometrijos, kaip `public/icon.svg`.
 
 Naršyklėje galima paleisti `python3 -m http.server 8000 -d public` ir atverti `http://localhost:8000`. Telefono naršyklėje vietos leidimui reikia HTTPS; Android versija vietinį turinį pateikia per saugų `appassets.androidplatform.net` originą.

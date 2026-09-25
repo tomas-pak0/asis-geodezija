@@ -114,14 +114,30 @@ function onPosition(p){
  if(follow)map.setView(point,map.getZoom()<14?17:map.getZoom(),{animate:true});
 }
 $('centerMap').onclick=()=>{follow=true;if(last)map.setView([last.coords.latitude,last.coords.longitude],17,{animate:true});else $('status').textContent='Laukiama vietos duomenų.'};
+window.AsisApplyNativePosition=p=>onPosition({timestamp:p.timestamp,coords:p});
+window.AsisApplyNativeLocationError=message=>{
+ $('status').textContent=message;
+ $('live').textContent='Vieta neatnaujinama';
+};
+window.AsisApplyNativeLocationStopped=()=>{
+ $('start').disabled=false;$('stop').disabled=true;
+ $('live').textContent='Vieta sustabdyta';
+};
 $('start').onclick=()=>{
+ if(window.AsisNativeLocation){
+  $('status').textContent='Ieškoma vietos…';
+  $('start').disabled=true;$('stop').disabled=false;
+  window.AsisNativeLocation.start();return;
+ }
  if(!navigator.geolocation){$('status').textContent='Šiame įrenginyje vietos nustatymas neprieinamas.';return}
  if(watcher!==null)return;
  $('status').textContent='Ieškoma vietos…';
  watcher=navigator.geolocation.watchPosition(onPosition,e=>{
-  $('status').textContent=e.code===1?'Suteik vietos leidimą programėlei.':'Nepavyko nustatyti vietos: '+e.message;
-  if(e.code===1){navigator.geolocation.clearWatch(watcher);watcher=null;$('stop').disabled=true;$('start').disabled=false}
+  $('status').textContent=e.code===1?'Suteik vietos leidimą naršyklei ir bandyk dar kartą.':e.code===3?'Vietos matavimas užtruko. Patikrink GPS ir bandyk dar kartą.':'Nepavyko nustatyti vietos: '+e.message;
+  $('live').textContent='Vieta neatnaujinama';
+  if(watcher!==null)navigator.geolocation.clearWatch(watcher);
+  watcher=null;$('stop').disabled=true;$('start').disabled=false;
  },{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
  $('start').disabled=true;$('stop').disabled=false;
 };
-$('stop').onclick=()=>{if(watcher!==null)navigator.geolocation.clearWatch(watcher);watcher=null;$('start').disabled=false;$('stop').disabled=true;$('live').textContent='Vieta sustabdyta';$('status').textContent='Vietos stebėjimas sustabdytas.'};
+$('stop').onclick=()=>{if(window.AsisNativeLocation)window.AsisNativeLocation.stop();if(watcher!==null)navigator.geolocation.clearWatch(watcher);watcher=null;$('start').disabled=false;$('stop').disabled=true;$('live').textContent='Vieta sustabdyta';$('status').textContent='Vietos stebėjimas sustabdytas.'};

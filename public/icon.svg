@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Ašis">
+<rect width="512" height="512" rx="108" fill="#101216"/>
+<path d="M256 70v372" stroke="#ed3948" stroke-width="16" stroke-linecap="round"/>
+<path d="M181 155h150M181 332h150" stroke="#ed3948" stroke-width="11" stroke-linecap="round"/>
+<circle cx="256" cy="244" r="31" fill="#101216" stroke="#fff" stroke-width="11"/>
+<rect x="113" y="362" width="286" height="71" rx="15" fill="#242a30" stroke="#ed3948" stroke-width="4"/>
+<text x="256" y="409" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="46" font-weight="700">PK 0+00</text>
+</svg>

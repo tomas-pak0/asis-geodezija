@@ -23,6 +23,7 @@ import android.telephony.TelephonyCallback;
 import android.telephony.TelephonyManager;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.webkit.GeolocationPermissions;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -91,13 +92,23 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
         getWindow().setStatusBarColor(0xff101216);getWindow().setNavigationBarColor(0xff101216);
+        // Android 15+ draws the status bar over the activity; use light icons on the dark backdrop.
+        if(Build.VERSION.SDK_INT>=30){
+            WindowInsetsController controller=getWindow().getInsetsController();
+            if(controller!=null)controller.setSystemBarsAppearance(0,
+                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS|WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
+        }else{
+            getWindow().getDecorView().setSystemUiVisibility(getWindow().getDecorView().getSystemUiVisibility()
+                & ~(android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR));
+        }
         locationManager=(LocationManager)getSystemService(LOCATION_SERVICE);
         telephonyManager=(TelephonyManager)getSystemService(TELEPHONY_SERVICE);
         connectivityManager=(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);
         WebViewAssetLoader loader=new WebViewAssetLoader.Builder()
             .addPathHandler("/assets/",new WebViewAssetLoader.AssetsPathHandler(this)).build();
         webView=new WebView(this);webView.setBackgroundColor(0xff101216);
-        FrameLayout frame=new FrameLayout(this);frame.addView(webView,new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
+        FrameLayout frame=new FrameLayout(this);frame.setBackgroundColor(0xff101216);
+        frame.addView(webView,new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
         if(Build.VERSION.SDK_INT>=35)frame.setOnApplyWindowInsetsListener((view,insets)->{
             android.graphics.Insets safe=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());
             view.setPadding(safe.left,safe.top,safe.right,safe.bottom);return WindowInsets.CONSUMED;

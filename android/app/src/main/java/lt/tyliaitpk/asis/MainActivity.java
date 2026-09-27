@@ -92,15 +92,6 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
         getWindow().setStatusBarColor(0xff101216);getWindow().setNavigationBarColor(0xff101216);
-        // Android 15+ draws the status bar over the activity; use light icons on the dark backdrop.
-        if(Build.VERSION.SDK_INT>=30){
-            WindowInsetsController controller=getWindow().getInsetsController();
-            if(controller!=null)controller.setSystemBarsAppearance(0,
-                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS|WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
-        }else{
-            getWindow().getDecorView().setSystemUiVisibility(getWindow().getDecorView().getSystemUiVisibility()
-                & ~(android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR));
-        }
         locationManager=(LocationManager)getSystemService(LOCATION_SERVICE);
         telephonyManager=(TelephonyManager)getSystemService(TELEPHONY_SERVICE);
         connectivityManager=(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);
@@ -114,6 +105,15 @@ public class MainActivity extends Activity {
             view.setPadding(safe.left,safe.top,safe.right,safe.bottom);return WindowInsets.CONSUMED;
         });
         setContentView(frame);
+        // WindowInsetsController requires an attached decor view on Android 16.
+        if(Build.VERSION.SDK_INT>=30){
+            WindowInsetsController controller=getWindow().getInsetsController();
+            if(controller!=null)controller.setSystemBarsAppearance(0,
+                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS|WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
+        }else{
+            getWindow().getDecorView().setSystemUiVisibility(getWindow().getDecorView().getSystemUiVisibility()
+                & ~(android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR));
+        }
         WebSettings settings=webView.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);
         webView.addJavascriptInterface(new NativeLocation(),"AsisNativeLocation");
         webView.addJavascriptInterface(new NativeShare(),"AsisNativeShare");

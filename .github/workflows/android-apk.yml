@@ -51,4 +51,9 @@ jobs:
             adb shell am start -W -n lt.tyliaitpk.asis/.MainActivity
             sleep 10
             adb logcat -d -v brief > crash-log.txt
-            adb shell pidof lt.tyliaitpk.asis || { grep -A 35 -B 5 -E 'FATAL EXCEPTION|lt.tyliaitpk.asis' crash-log.txt | tail -180; exit 1; }
+            adb shell pidof lt.tyliaitpk.asis || { grep -m 1 -A 45 -B 6 'FATAL EXCEPTION' crash-log.txt || grep -E 'lt.tyliaitpk.asis|AndroidRuntime|am_crash|am_kill' crash-log.txt | tail -70; exit 1; }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-startup-log
+          path: crash-log.txt

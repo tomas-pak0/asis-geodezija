@@ -9,6 +9,8 @@ const targetIcon=L.divIcon({className:'target-marker-icon',html:'<span class="ta
 let watcher=null,last=null,pin=null,follow=true,alignment=null,alignmentLayer=null,stationLayer=null,nearestLine=null,xmlAlignments=null,xmlFileName='';
 let target=null,targetMarker=null,targetLine=null,targetFitOnFirstFix=false;
 let surveyPoints=[],surveyLayer=null,selectedSurveyIndex=-1,surveyLine=null,surveyMarkers=[],surveyPopupDistance=null;
+const surveyStyle={radius:6,color:'#101216',weight:2,fillColor:'#f7c85e',fillOpacity:1};
+const selectedSurveyStyle={radius:8,color:'#101216',weight:2,fillColor:'#fff',fillOpacity:1};
 const stationGroup=()=>Number($('stationFormat').value);
 function connectivity(){
  const c=navigator.connection;
@@ -160,9 +162,7 @@ function showSurveyPoints(points,name,skipped=0,save=true){
  // Build the replacement layer before removing the current points.
  const layer=L.layerGroup(),markers=[];
  points.forEach((p,i)=>{
-  const marker=L.marker([p.latitude,p.longitude],{
-   icon:L.divIcon({className:'survey-point-icon',html:'<span class="survey-point"></span>',iconSize:[22,22],iconAnchor:[11,11]})
-  }).bindTooltip(p.id+(p.name?' · '+p.name:''),{direction:'top'});
+  const marker=L.circleMarker([p.latitude,p.longitude],surveyStyle);
   marker.on('click',()=>selectSurveyPoint(i));marker.addTo(layer);markers.push(marker);
  });
  surveyLayer?.remove();surveyLine?.remove();surveyLine=null;
@@ -185,8 +185,8 @@ function updateSurveyDistance(c){
 }
 function selectSurveyPoint(i){
  const p=surveyPoints[i];if(!p)return;
- if(selectedSurveyIndex>=0)surveyMarkers[selectedSurveyIndex]?.getElement()?.querySelector('.survey-point')?.classList.remove('selected');
- selectedSurveyIndex=i;surveyMarkers[i]?.getElement()?.querySelector('.survey-point')?.classList.add('selected');
+ if(selectedSurveyIndex>=0)surveyMarkers[selectedSurveyIndex]?.setStyle(surveyStyle);
+ selectedSurveyIndex=i;surveyMarkers[i].setStyle(selectedSurveyStyle);
  $('selectedPoint').hidden=false;$('selectedPointName').textContent='Taškas '+p.id+(p.name?' · '+p.name:'');
  $('selectedPointCoords').textContent='X '+p.x.toFixed(3)+' · Y '+p.y.toFixed(3)+' · H '+p.z.toFixed(3)+' m';
  const popup=document.createElement('div'),title=document.createElement('strong'),distance=document.createElement('div');

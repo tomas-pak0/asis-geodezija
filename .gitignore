@@ -5,3 +5,4 @@ android/app/build/
 android/build/
 *.keystore
 *.jks
+public/vendor/libredwg/wasm/libredwg-web.wasm

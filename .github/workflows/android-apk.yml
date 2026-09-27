@@ -21,6 +21,10 @@ jobs:
           gradle-version: '8.13'
       - name: Install Android SDK 36
         run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Bundle DWG reader for offline APK import
+        run: |
+          curl -fLS --retry 3 --max-time 120 'https://cdn.jsdelivr.net/npm/@mlightcad/libredwg-web@0.7.14/wasm/libredwg-web.wasm' -o ../public/vendor/libredwg/wasm/libredwg-web.wasm
+          echo '431576487027122a28e5ac99d91fe6366f81ecda743a4676878c75c85fe82c53  ../public/vendor/libredwg/wasm/libredwg-web.wasm' | sha256sum -c -
       - name: Build debug APK
         run: gradle --no-daemon :app:assembleDebug
       - uses: actions/upload-artifact@v4

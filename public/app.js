@@ -8,6 +8,7 @@ const markerIcon=L.divIcon({className:'',html:'<span class="position-marker"></s
 const targetIcon=L.divIcon({className:'target-marker-icon',html:'<span class="target-marker"></span>',iconSize:[26,26],iconAnchor:[13,13]});
 let watcher=null,last=null,pin=null,follow=true,alignment=null,alignmentLayer=null,stationLayer=null,nearestLine=null,xmlAlignments=null,xmlFileName='';
 let target=null,targetMarker=null,targetLine=null,targetFitOnFirstFix=false;
+let boundary=null,boundaryLayer=null;
 let surveyPoints=[],surveyLayer=null,selectedSurveyIndex=-1,surveyLine=null,surveyMarkers=[],surveyPopupDistance=null;
 let roadRouteLayer=null,roadRouteOrigin=null,roadRouteController=null,roadRouteRequest=0,roadRouteLastRequest=0,roadRouteSummary='',surveyPopupRoute=null,surveyPopupRouteButton=null;
 const surveyStyle={radius:6,color:'#101216',weight:2,fillColor:'#f7c85e',fillOpacity:1};
@@ -340,12 +341,55 @@ $('clearPoints').onclick=()=>{
  $('pointsStatus').textContent='Taškai pašalinti. Gali įkelti kitą failą.';
  localStorage.removeItem('asis-points');
 };
+function renderBoundary(fit=false){
+ boundaryLayer?.remove();boundaryLayer=null;
+ if(!boundary)return;
+ const chosen=$('boundaryLayer').value;
+ const layers=chosen==='*'?boundary.layers:boundary.layers.filter(item=>item.name===chosen);
+ const lines=layers.flatMap(item=>item.lines);
+ if($('showBoundary').checked){
+  boundaryLayer=L.layerGroup();
+  for(const line of lines)L.polyline(line,{color:'#b68cff',weight:3,opacity:.95,interactive:false}).addTo(boundaryLayer);
+  boundaryLayer.addTo(map);
+ }
+ $('boundaryStatus').textContent=boundary.name+' · '+lines.length+' linijų'+(boundary.skipped?' · praleista už Lietuvos ribų: '+boundary.skipped:'')+'.';
+ if(fit&&lines.length){map.fitBounds(L.latLngBounds(lines.flat()),{padding:[35,35],maxZoom:17});follow=false}
+}
+function showBoundary(parsed,name,save=true){
+ if(!Array.isArray(parsed.layers)||!parsed.layers.length)throw Error('Faile nėra matomų linijų.');
+ boundary={...parsed,name};
+ const picker=$('boundaryLayer');picker.replaceChildren();
+ const all=document.createElement('option');all.value='*';all.textContent='Visi sluoksniai';picker.append(all);
+ for(const item of boundary.layers){const option=document.createElement('option');option.value=item.name;option.textContent=item.name+' ('+item.lines.length+')';picker.append(option)}
+ $('boundaryLayerLabel').hidden=boundary.layers.length<2;
+ picker.value='*';$('showBoundary').checked=true;$('clearBoundary').hidden=false;
+ renderBoundary(true);
+ if(save)try{localStorage.setItem('asis-boundary',JSON.stringify(boundary))}
+ catch{$('boundaryStatus').textContent+=' Nepavyko išsaugoti šiame įrenginyje; kitą kartą failą įkelk iš naujo.'}
+}
+$('boundaryFile').onchange=async event=>{
+ const file=event.target.files[0];if(!file)return;
+ $('boundaryStatus').textContent='Skaitomas '+file.name+'…';
+ try{showBoundary(await AsisBoundary.parse(file,$('boundarySystem').value),file.name)}
+ catch(error){$('boundaryStatus').textContent='Nepavyko įkelti ribos: '+error.message}
+ event.target.value='';
+};
+$('boundaryLayer').onchange=()=>renderBoundary(true);
+$('showBoundary').onchange=()=>renderBoundary(false);
+$('clearBoundary').onclick=()=>{
+ boundaryLayer?.remove();boundaryLayer=boundary=null;
+ $('boundaryFile').value='';$('clearBoundary').hidden=true;$('boundaryLayerLabel').hidden=true;
+ $('boundaryStatus').textContent='Riba pašalinta. Gali įkelti kitą failą.';
+ localStorage.removeItem('asis-boundary');
+};
 try{const saved=JSON.parse(localStorage.getItem('asis-alignment'));if(saved?.points){$('stationStart').value=saved.startMetres;showAlignment(saved.points,saved.name,saved.startMetres)}}
 catch{localStorage.removeItem('asis-alignment')}
 try{const saved=JSON.parse(localStorage.getItem('asis-target'));if(saved)showTarget(Number(saved.x),Number(saved.y),false,saved.mode)}
 catch{localStorage.removeItem('asis-target')}
 try{const saved=JSON.parse(localStorage.getItem('asis-points'));if(saved?.points?.length)showSurveyPoints(saved.points,saved.name,saved.skipped,false)}
 catch{localStorage.removeItem('asis-points')}
+try{const saved=JSON.parse(localStorage.getItem('asis-boundary'));if(saved?.layers?.length)showBoundary(saved,saved.name,false)}
+catch{localStorage.removeItem('asis-boundary')}
 function ageLabel(seconds){if(seconds<60)return seconds+' s';if(seconds<3600)return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');return Math.floor(seconds/3600)+':'+String(Math.floor(seconds/60)%60).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')}
 setInterval(()=>{if(last){const age=Math.max(0,Math.floor((Date.now()-last.timestamp)/1000));$('updated').textContent='Matavimas '+new Date(last.timestamp).toLocaleTimeString('lt-LT')+' · prieš '+ageLabel(age);if(age>30)$('live').textContent='Duomenys neatnaujinami'}},1000);
 function lksText(c){

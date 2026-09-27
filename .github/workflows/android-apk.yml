@@ -27,3 +27,31 @@ jobs:
         with:
           name: asis-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+  smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: asis-debug-apk
+          path: apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Launch APK on Android 16 emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          script: |
+            adb install apk/app-debug.apk
+            adb logcat -c
+            adb shell am start -W -n lt.tyliaitpk.asis/.MainActivity
+            sleep 10
+            adb logcat -d -v brief > crash-log.txt
+            if ! adb shell pidof lt.tyliaitpk.asis; then
+              grep -A 35 -B 5 -E 'FATAL EXCEPTION|lt.tyliaitpk.asis' crash-log.txt | tail -180
+              exit 1
+            fi

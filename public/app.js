@@ -8,6 +8,7 @@ const markerIcon=L.divIcon({className:'',html:'<span class="position-marker"></s
 const targetIcon=L.divIcon({className:'target-marker-icon',html:'<span class="target-marker"></span>',iconSize:[26,26],iconAnchor:[13,13]});
 let watcher=null,last=null,pin=null,follow=true,alignment=null,alignmentLayer=null,stationLayer=null,nearestLine=null,xmlAlignments=null,xmlFileName='';
 let target=null,targetMarker=null,targetLine=null,targetFitOnFirstFix=false;
+let surveyPoints=[],surveyLayer=null,selectedSurveyIndex=-1,surveyLine=null,surveyMarkers=[];
 const stationGroup=()=>Number($('stationFormat').value);
 function connectivity(){
  const c=navigator.connection;
@@ -155,10 +156,62 @@ $('clearTarget').onclick=()=>{
  $('targetStatus').textContent='Taškas pašalintas. Gali įvesti kitą.';
  localStorage.removeItem('asis-target');
 };
+function showSurveyPoints(points,name,skipped=0,save=true){
+ // Build the replacement layer before removing the current points.
+ const layer=L.layerGroup(),markers=[];
+ points.forEach((p,i)=>{
+  const marker=L.marker([p.latitude,p.longitude],{
+   icon:L.divIcon({className:'survey-point-icon',html:'<span class="survey-point"></span>',iconSize:[22,22],iconAnchor:[11,11]})
+  }).bindTooltip(p.id+(p.name?' · '+p.name:''),{direction:'top'});
+  marker.on('click',()=>selectSurveyPoint(i));marker.addTo(layer);markers.push(marker);
+ });
+ surveyLayer?.remove();surveyLine?.remove();surveyLine=null;
+ surveyPoints=points;surveyLayer=layer.addTo(map);surveyMarkers=markers;selectedSurveyIndex=-1;
+ $('selectedPoint').hidden=true;$('clearPoints').hidden=false;
+ $('pointsStatus').textContent=name+' · '+points.length+' taškų'+(skipped?' · praleista netinkamų eilučių: '+skipped:'')+'. Paspausk tašką žemėlapyje.';
+ map.fitBounds(L.latLngBounds(points.map(p=>[p.latitude,p.longitude])),{padding:[35,35],maxZoom:17});follow=false;
+ if(save)try{localStorage.setItem('asis-points',JSON.stringify({points,name,skipped}))}
+ catch{$('pointsStatus').textContent+=' Nepavyko išsaugoti taškų; kitą kartą failą reikės įkelti iš naujo.'}
+}
+function updateSurveyDistance(c){
+ const p=surveyPoints[selectedSurveyIndex];if(!p)return;
+ if(!c){$('selectedPointDistance').textContent='Laukiama vietos';return}
+ if(c.latitude<53.89||c.latitude>56.45||c.longitude<19.02||c.longitude>26.82){$('selectedPointDistance').textContent='Už LKS94 srities';return}
+ const [x,y]=KurAsAlignment.toLks94(c.latitude,c.longitude),d=Math.hypot(p.x-x,p.y-y);
+ $('selectedPointDistance').textContent=d>=1000?(d/1000).toFixed(2).replace('.',',')+' km':d.toFixed(1).replace('.',',')+' m';
+ if(!surveyLine)surveyLine=L.polyline([],{color:'#f7c85e',weight:2,dashArray:'6,5',interactive:false}).addTo(map);
+ surveyLine.setLatLngs([[c.latitude,c.longitude],[p.latitude,p.longitude]]);
+}
+function selectSurveyPoint(i){
+ const p=surveyPoints[i];if(!p)return;
+ if(selectedSurveyIndex>=0)surveyMarkers[selectedSurveyIndex]?.getElement()?.querySelector('.survey-point')?.classList.remove('selected');
+ selectedSurveyIndex=i;surveyMarkers[i]?.getElement()?.querySelector('.survey-point')?.classList.add('selected');
+ $('selectedPoint').hidden=false;$('selectedPointName').textContent='Taškas '+p.id+(p.name?' · '+p.name:'');
+ $('selectedPointCoords').textContent='X '+p.x.toFixed(3)+' · Y '+p.y.toFixed(3)+' · H '+p.z.toFixed(3)+' m';
+ updateSurveyDistance(last?.coords);
+}
+$('pointsFile').onchange=async event=>{
+ const file=event.target.files[0];if(!file)return;
+ try{
+  if(file.size>2000000)throw Error('Failas per didelis (iki 2 MB).');
+  const {points,skipped}=AsisPoints.parse(await file.text(),file.name);
+  showSurveyPoints(points,file.name,skipped);
+ }catch(error){$('pointsStatus').textContent='Nepavyko įkelti taškų: '+error.message}
+ event.target.value='';
+};
+$('clearPoints').onclick=()=>{
+ surveyLayer?.remove();surveyLine?.remove();surveyLayer=surveyLine=null;
+ surveyMarkers=[];surveyPoints=[];selectedSurveyIndex=-1;
+ $('selectedPoint').hidden=true;$('clearPoints').hidden=true;
+ $('pointsStatus').textContent='Taškai pašalinti. Gali įkelti kitą failą.';
+ localStorage.removeItem('asis-points');
+};
 try{const saved=JSON.parse(localStorage.getItem('asis-alignment'));if(saved?.points){$('stationStart').value=saved.startMetres;showAlignment(saved.points,saved.name,saved.startMetres)}}
 catch{localStorage.removeItem('asis-alignment')}
 try{const saved=JSON.parse(localStorage.getItem('asis-target'));if(saved)showTarget(Number(saved.x),Number(saved.y),false)}
 catch{localStorage.removeItem('asis-target')}
+try{const saved=JSON.parse(localStorage.getItem('asis-points'));if(saved?.points?.length)showSurveyPoints(saved.points,saved.name,saved.skipped,false)}
+catch{localStorage.removeItem('asis-points')}
 function ageLabel(seconds){if(seconds<60)return seconds+' s';if(seconds<3600)return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');return Math.floor(seconds/3600)+':'+String(Math.floor(seconds/60)%60).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')}
 setInterval(()=>{if(last){const age=Math.max(0,Math.floor((Date.now()-last.timestamp)/1000));$('updated').textContent='Matavimas '+new Date(last.timestamp).toLocaleTimeString('lt-LT')+' · prieš '+ageLabel(age);if(age>30)$('live').textContent='Duomenys neatnaujinami'}},1000);
 function lksText(c){
@@ -206,6 +259,7 @@ function onPosition(p){
  if(!pin)pin=L.marker(point,{icon:markerIcon}).addTo(map);else pin.setLatLng(point);
  updateAlignment(c);
  updateTarget(c);
+ updateSurveyDistance(c);
  if(targetFitOnFirstFix&&follow&&target){
   map.fitBounds(L.latLngBounds([point,[target.latitude,target.longitude]]),{padding:[45,45],maxZoom:17});
   follow=false;targetFitOnFirstFix=false;

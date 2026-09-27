@@ -148,6 +148,19 @@ function parseLksNumber(value){
  const clean=value.trim().replace(/\s/g,'').replace(',','.');
  return /^\d+(?:\.\d+)?$/.test(clean)?Number(clean):NaN;
 }
+function updateTargetSystem(){
+ const wgs=$('targetSystem').value==='wgs';
+ $('targetXLabel').textContent=wgs?'Platuma (°)':'X · šiaurė, m';
+ $('targetYLabel').textContent=wgs?'Ilguma (°)':'Y · rytai, m';
+ $('targetX').placeholder=wgs?'55,019937':'6125330,97';
+ $('targetY').placeholder=wgs?'25,108543':'549904,73';
+ $('targetX').value=target?(wgs?String(target.latitude):String(target.x)):'';
+ $('targetY').value=target?(wgs?String(target.longitude):String(target.y)):'';
+}
+$('targetSystem').onchange=()=>{
+ updateTargetSystem();
+ $('targetStatus').textContent=$('targetSystem').value==='wgs'?'Įvesk WGS84 platumą ir ilgumą.':'Įvesk LKS94 X ir Y koordinates.';
+};
 function updateTarget(c){
  if(!target)return;
  if(!c){$('targetDistance').textContent='Laukiama vietos';$('targetBearing').textContent='–';return}
@@ -163,7 +176,7 @@ function updateTarget(c){
  const directions=['Š','ŠR','R','PR','P','PV','V','ŠV'];
  $('targetBearing').textContent=degrees.toFixed(0)+'° ('+directions[Math.round(degrees/45)%8]+')';
 }
-function showTarget(x,y,save=true){
+function showTarget(x,y,save=true,mode='lks'){
  if(!Number.isFinite(x)||!Number.isFinite(y))throw Error('Įvesk skaitines X ir Y koordinates.');
  const [latitude,longitude]=KurAsAlignment.lks94(x,y);
  if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||latitude<53.89||latitude>56.45||longitude<19.02||longitude>26.82)
@@ -173,17 +186,25 @@ function showTarget(x,y,save=true){
  if(!targetMarker)targetMarker=L.marker(point,{icon:targetIcon}).addTo(map).bindTooltip('Tikslas',{permanent:true,direction:'top',offset:[0,-12]});
  else targetMarker.setLatLng(point);
  if(!targetLine)targetLine=L.polyline([],{color:'#72d7ff',weight:3,dashArray:'7,6',interactive:false}).addTo(map);
- $('targetX').value=String(x);$('targetY').value=String(y);$('clearTarget').hidden=false;
+ $('targetSystem').value=mode==='wgs'?'wgs':'lks';updateTargetSystem();$('clearTarget').hidden=false;
  $('targetStatus').textContent=last?'Taškas žemėlapyje. Atstumas skaičiuojamas nuo telefono vietos.':'Taškas žemėlapyje. Laukiama telefono vietos matavimo.';
  updateTarget(last?.coords);
  if(last){map.fitBounds(L.latLngBounds([[last.coords.latitude,last.coords.longitude],point]),{padding:[45,45],maxZoom:17});follow=false}
  else{map.setView(point,16);targetFitOnFirstFix=true}
- if(save)try{localStorage.setItem('asis-target',JSON.stringify({x,y}))}
+ if(save)try{localStorage.setItem('asis-target',JSON.stringify({x,y,mode:$('targetSystem').value}))}
  catch{$('targetStatus').textContent+=' Nepavyko išsaugoti taško šiame įrenginyje.'}
 }
 $('targetForm').onsubmit=event=>{
  event.preventDefault();
- try{showTarget(parseLksNumber($('targetX').value),parseLksNumber($('targetY').value))}
+ try{
+  const first=parseLksNumber($('targetX').value),second=parseLksNumber($('targetY').value);
+  if($('targetSystem').value==='wgs'){
+   if(!Number.isFinite(first)||!Number.isFinite(second)||first<53.89||first>56.45||second<19.02||second>26.82)
+    throw Error('Įvesk WGS84 platumą (53,89–56,45°) ir ilgumą (19,02–26,82°) šia tvarka.');
+   const [x,y]=KurAsAlignment.toLks94(first,second);
+   showTarget(x,y,true,'wgs');
+  }else showTarget(first,second);
+ }
  catch(error){$('targetStatus').textContent=error.message}
 };
 $('clearTarget').onclick=()=>{
@@ -321,7 +342,7 @@ $('clearPoints').onclick=()=>{
 };
 try{const saved=JSON.parse(localStorage.getItem('asis-alignment'));if(saved?.points){$('stationStart').value=saved.startMetres;showAlignment(saved.points,saved.name,saved.startMetres)}}
 catch{localStorage.removeItem('asis-alignment')}
-try{const saved=JSON.parse(localStorage.getItem('asis-target'));if(saved)showTarget(Number(saved.x),Number(saved.y),false)}
+try{const saved=JSON.parse(localStorage.getItem('asis-target'));if(saved)showTarget(Number(saved.x),Number(saved.y),false,saved.mode)}
 catch{localStorage.removeItem('asis-target')}
 try{const saved=JSON.parse(localStorage.getItem('asis-points'));if(saved?.points?.length)showSurveyPoints(saved.points,saved.name,saved.skipped,false)}
 catch{localStorage.removeItem('asis-points')}

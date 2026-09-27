@@ -281,6 +281,7 @@ window.AsisApplyNativePosition=p=>onPosition({timestamp:p.timestamp,coords:p});
 window.AsisApplyNativeLocationError=message=>{
  $('status').textContent=message;
  $('live').textContent='Vieta neatnaujinama';
+ if(selectedSurveyIndex>=0){$('selectedPointDistance').textContent=message;if(surveyPopupDistance)surveyPopupDistance.textContent=message}
 };
 window.AsisApplyNativeLocationStopped=()=>{
  $('start').disabled=false;$('stop').disabled=true;
@@ -292,11 +293,12 @@ $('start').onclick=()=>{
   $('start').disabled=true;$('stop').disabled=false;
   window.AsisNativeLocation.start();return;
  }
- if(!navigator.geolocation){$('status').textContent='Šiame įrenginyje vietos nustatymas neprieinamas.';return}
+ if(!navigator.geolocation){$('status').textContent='Šiame įrenginyje vietos nustatymas neprieinamas.';if(surveyPopupDistance)surveyPopupDistance.textContent='Vieta neprieinama';return}
  if(watcher!==null)return;
  $('status').textContent='Ieškoma vietos…';
  watcher=navigator.geolocation.watchPosition(onPosition,e=>{
   $('status').textContent=e.code===1?'Suteik vietos leidimą naršyklei ir bandyk dar kartą.':e.code===3?'Vietos matavimas užtruko. Patikrink GPS ir bandyk dar kartą.':'Nepavyko nustatyti vietos: '+e.message;
+  if(selectedSurveyIndex>=0){$('selectedPointDistance').textContent=$('status').textContent;if(surveyPopupDistance)surveyPopupDistance.textContent=$('status').textContent}
   $('live').textContent='Vieta neatnaujinama';
   if(watcher!==null)navigator.geolocation.clearWatch(watcher);
   watcher=null;$('stop').disabled=true;$('start').disabled=false;

@@ -12,9 +12,12 @@ let surveyPoints=[],surveyLayer=null,selectedSurveyIndex=-1,surveyLine=null,surv
 const surveyStyle={radius:6,color:'#101216',weight:2,fillColor:'#f7c85e',fillOpacity:1};
 const selectedSurveyStyle={radius:8,color:'#101216',weight:2,fillColor:'#fff',fillOpacity:1};
 function updateSurveyLabels(){
- const show=map.getZoom()>=17,bounds=show?map.getBounds().pad(.15):null;
+ const bounds=map.getBounds(),center=map.getCenter();
+ const width=map.distance([center.lat,bounds.getWest()],[center.lat,bounds.getEast()]);
+ const show=$('showPointNumbers').checked&&width<=1000;
+ const visible=show?bounds.pad(.15):null;
  surveyMarkers.forEach((marker,i)=>{
-  if(show&&bounds.contains(marker.getLatLng())){
+  if(show&&visible.contains(marker.getLatLng())){
    if(!marker.getTooltip()){
     const label=document.createElement('span');label.textContent=String(surveyPoints[i].id);
     marker.bindTooltip(label,{permanent:true,direction:'right',offset:[9,0],className:'survey-point-label',interactive:false}).openTooltip();
@@ -22,7 +25,12 @@ function updateSurveyLabels(){
   }else if(marker.getTooltip())marker.unbindTooltip();
  });
 }
-map.on('zoomend moveend',updateSurveyLabels);
+map.on('zoomend moveend resize',updateSurveyLabels);
+$('showPointNumbers').checked=localStorage.getItem('asis-show-point-numbers')!=='false';
+$('showPointNumbers').onchange=()=>{
+ localStorage.setItem('asis-show-point-numbers',String($('showPointNumbers').checked));
+ updateSurveyLabels();
+};
 const stationGroup=()=>Number($('stationFormat').value);
 function connectivity(){
  const c=navigator.connection;

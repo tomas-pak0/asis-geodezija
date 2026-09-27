@@ -9,6 +9,7 @@ const targetIcon=L.divIcon({className:'target-marker-icon',html:'<span class="ta
 let watcher=null,last=null,pin=null,follow=true,alignment=null,alignmentLayer=null,stationLayer=null,nearestLine=null,xmlAlignments=null,xmlFileName='';
 let target=null,targetMarker=null,targetLine=null,targetFitOnFirstFix=false;
 let surveyPoints=[],surveyLayer=null,selectedSurveyIndex=-1,surveyLine=null,surveyMarkers=[],surveyPopupDistance=null;
+let roadRouteLayer=null,roadRouteOrigin=null,roadRouteController=null,roadRouteRequest=0,roadRouteLastRequest=0,roadRouteSummary='',surveyPopupRoute=null,surveyPopupRouteButton=null;
 const surveyStyle={radius:6,color:'#101216',weight:2,fillColor:'#f7c85e',fillOpacity:1};
 const selectedSurveyStyle={radius:8,color:'#101216',weight:2,fillColor:'#fff',fillOpacity:1};
 const surveyLabelsLayer=L.layerGroup().addTo(map);
@@ -199,8 +200,8 @@ function showSurveyPoints(points,name,skipped=0,save=true){
   const marker=L.circleMarker([p.latitude,p.longitude],surveyStyle);
   marker.on('click',()=>selectSurveyPoint(i));marker.addTo(layer);markers.push(marker);
  });
- surveyLayer?.remove();surveyLine?.remove();surveyLine=null;
- surveyPoints=points;surveyLayer=layer.addTo(map);surveyMarkers=markers;selectedSurveyIndex=-1;surveyPopupDistance=null;
+ clearRoadRoute(false);surveyLayer?.remove();surveyLine?.remove();surveyLine=null;
+ surveyPoints=points;surveyLayer=layer.addTo(map);surveyMarkers=markers;selectedSurveyIndex=-1;surveyPopupDistance=surveyPopupRoute=surveyPopupRouteButton=null;
  $('selectedPoint').hidden=true;$('clearPoints').hidden=false;
  $('pointsStatus').textContent=name+' · '+points.length+' taškų'+(skipped?' · praleista netinkamų eilučių: '+skipped:'')+'. Paspausk tašką žemėlapyje.';
  map.fitBounds(L.latLngBounds(points.map(p=>[p.latitude,p.longitude])),{padding:[35,35],maxZoom:17});follow=false;
@@ -215,19 +216,87 @@ function updateSurveyDistance(c){
  if(c.latitude<53.89||c.latitude>56.45||c.longitude<19.02||c.longitude>26.82){setDistance('Už LKS94 srities');return}
  const [x,y]=KurAsAlignment.toLks94(c.latitude,c.longitude),d=Math.hypot(p.x-x,p.y-y);
  setDistance(d>=1000?(d/1000).toFixed(2).replace('.',',')+' km':d.toFixed(1).replace('.',',')+' m');
- if(!surveyLine)surveyLine=L.polyline([],{color:'#f7c85e',weight:2,dashArray:'6,5',interactive:false}).addTo(map);
- surveyLine.setLatLngs([[c.latitude,c.longitude],[p.latitude,p.longitude]]);
+ if(!roadRouteLayer){
+  if(!surveyLine)surveyLine=L.polyline([],{color:'#f7c85e',weight:2,dashArray:'6,5',interactive:false}).addTo(map);
+  surveyLine.setLatLngs([[c.latitude,c.longitude],[p.latitude,p.longitude]]);
+ }else if(roadRouteOrigin&&map.distance(roadRouteOrigin,[c.latitude,c.longitude])>100){
+  routeMessage(roadRouteSummary+' Vieta pasikeitė · paspausk „Atnaujinti maršrutą“.');
+ }
 }
+function clearRoadRoute(restoreLine=true){
+ roadRouteRequest++;roadRouteController?.abort();roadRouteController=null;
+ roadRouteLayer?.remove();roadRouteLayer=roadRouteOrigin=null;roadRouteSummary='';
+ $('routeToPoint').disabled=false;$('routeToPoint').textContent='Rodyti privažiavimą';$('clearRoute').hidden=true;
+ if(surveyPopupRouteButton){surveyPopupRouteButton.disabled=false;surveyPopupRouteButton.textContent='Rodyti privažiavimą'}
+ $('routeStatus').textContent='Maršrutas skaičiuojamas pagal kelius, kai jo paprašai. Tam reikia interneto.';
+ if(surveyPopupRoute)surveyPopupRoute.textContent='';
+ if(restoreLine&&selectedSurveyIndex>=0)updateSurveyDistance(last?.coords);
+}
+function routeMessage(message){
+ $('routeStatus').textContent=message;
+ if(surveyPopupRoute)surveyPopupRoute.textContent=message;
+}
+async function calculateRoadRoute(){
+ const index=selectedSurveyIndex,p=surveyPoints[index];if(!p)return;
+ if(!last){routeMessage('Pirma įjunk vietos nustatymą ir palauk GPS matavimo.');if(!$('start').disabled)$('start').click();return}
+ if(Date.now()-last.timestamp>30000){routeMessage('Vietos matavimas pasenęs. Atnaujink savo vietą ir bandyk vėl.');if(!$('start').disabled)$('start').click();return}
+ if(!navigator.onLine){routeMessage('Kelių maršrutui reikia interneto ryšio.');return}
+ if(Date.now()-roadRouteLastRequest<1200)return;
+ roadRouteLastRequest=Date.now();
+ roadRouteController?.abort();const controller=new AbortController(),request=++roadRouteRequest;
+ roadRouteController=controller;$('routeToPoint').disabled=true;routeMessage('Skaičiuojamas automobilio maršrutas…');
+ if(surveyPopupRouteButton)surveyPopupRouteButton.disabled=true;
+ const origin=[last.coords.latitude,last.coords.longitude];
+ const url='https://routing.openstreetmap.de/routed-car/route/v1/driving/'
+  +origin[1].toFixed(6)+','+origin[0].toFixed(6)+';'+p.longitude.toFixed(6)+','+p.latitude.toFixed(6)
+  +'?overview=full&geometries=geojson&steps=false';
+ try{
+  const response=await fetch(url,{signal:controller.signal});
+  if(!response.ok)throw Error('Maršrutų serveris neatsako ('+response.status+').');
+  const data=await response.json();
+  if(data.code!=='Ok'||!data.routes?.[0]?.geometry?.coordinates?.length)throw Error('Iki šio taško automobilio maršrutas nerastas.');
+  if(request!==roadRouteRequest||selectedSurveyIndex!==index)return;
+  const route=data.routes[0],coords=route.geometry.coordinates;
+  if(coords.length>50000||!Number.isFinite(route.distance)||!coords.every(c=>c.length>=2&&Number.isFinite(c[0])&&Number.isFinite(c[1])))
+   throw Error('Gauti maršruto duomenys netinkami.');
+  const line=coords.map(([lon,lat])=>[lat,lon]);
+  const layer=L.layerGroup();
+  L.polyline(line,{color:'#55c4ff',weight:5,opacity:.95,interactive:false}).addTo(layer);
+  const gaps=[];
+  if(map.distance(origin,line[0])>10)gaps.push([origin,line[0]]);
+  if(map.distance(line[line.length-1],[p.latitude,p.longitude])>10)gaps.push([line[line.length-1],[p.latitude,p.longitude]]);
+  if(gaps.length)L.polyline(gaps,{color:'#55c4ff',weight:2,dashArray:'5,6',interactive:false}).addTo(layer);
+  roadRouteLayer?.remove();roadRouteLayer=layer.addTo(map);roadRouteOrigin=origin;
+  surveyLine?.remove();surveyLine=null;
+  map.fitBounds(L.latLngBounds([...line,origin,[p.latitude,p.longitude]]),{padding:[35,35],maxZoom:16});follow=false;
+  const distance=route.distance>=1000?(route.distance/1000).toFixed(1).replace('.',',')+' km':Math.round(route.distance)+' m';
+  const finalGap=Math.round(data.waypoints?.[1]?.distance||0);
+  roadRouteSummary='Privažiavimas keliais: '+distance+(finalGap>10?' · nuo kelio iki taško dar ~'+finalGap+' m tiesiai.':'.');
+  routeMessage(roadRouteSummary);
+  $('clearRoute').hidden=false;$('routeToPoint').textContent='Atnaujinti maršrutą';
+  if(surveyPopupRouteButton)surveyPopupRouteButton.textContent='Atnaujinti maršrutą';
+ }catch(error){
+  if(request!==roadRouteRequest||error.name==='AbortError')return;
+  routeMessage((error instanceof TypeError?'Nepavyko pasiekti maršrutų serverio. Patikrink internetą.':error.message)+(roadRouteLayer?' Rodomas ankstesnis maršrutas.':''));
+ }finally{if(request===roadRouteRequest){roadRouteController=null;$('routeToPoint').disabled=false;if(surveyPopupRouteButton)surveyPopupRouteButton.disabled=false}}
+}
+$('routeToPoint').onclick=calculateRoadRoute;
+$('clearRoute').onclick=()=>clearRoadRoute();
 function selectSurveyPoint(i){
  const p=surveyPoints[i];if(!p)return;
+ clearRoadRoute(false);
  if(selectedSurveyIndex>=0)surveyMarkers[selectedSurveyIndex]?.setStyle(surveyStyle);
  selectedSurveyIndex=i;surveyMarkers[i].setStyle(selectedSurveyStyle);
  updateSurveyLabels();
  $('selectedPoint').hidden=false;$('selectedPointName').textContent='Taškas '+p.id+(p.name?' · '+p.name:'');
  $('selectedPointCoords').textContent='X '+p.x.toFixed(3)+' · Y '+p.y.toFixed(3)+' · H '+p.z.toFixed(3)+' m';
  const popup=document.createElement('div'),title=document.createElement('strong'),distance=document.createElement('div');
+ const route=document.createElement('div'),routeButton=document.createElement('button');
  title.textContent='Taškas '+p.id+(p.name?' · '+p.name:'');
- distance.className='survey-popup-distance';popup.append(title,distance);surveyPopupDistance=distance;
+ distance.className='survey-popup-distance';route.className='survey-popup-route';
+ routeButton.className='survey-popup-action';routeButton.type='button';routeButton.textContent='Rodyti privažiavimą';
+ routeButton.onclick=event=>{event.stopPropagation();calculateRoadRoute()};
+ popup.append(title,distance,route,routeButton);surveyPopupDistance=distance;surveyPopupRoute=route;surveyPopupRouteButton=routeButton;
  surveyMarkers[i].bindPopup(popup,{autoPan:true}).openPopup();
  updateSurveyDistance(last?.coords);
  if(!last&&!$('start').disabled)$('start').click();
@@ -242,8 +311,9 @@ $('pointsFile').onchange=async event=>{
  event.target.value='';
 };
 $('clearPoints').onclick=()=>{
+ clearRoadRoute(false);
  surveyLayer?.remove();surveyLine?.remove();surveyLayer=surveyLine=null;
- surveyMarkers=[];surveyPoints=[];selectedSurveyIndex=-1;surveyPopupDistance=null;
+ surveyMarkers=[];surveyPoints=[];selectedSurveyIndex=-1;surveyPopupDistance=surveyPopupRoute=surveyPopupRouteButton=null;
  surveyLabelsLayer.clearLayers();
  $('selectedPoint').hidden=true;$('clearPoints').hidden=true;
  $('pointsStatus').textContent='Taškai pašalinti. Gali įkelti kitą failą.';

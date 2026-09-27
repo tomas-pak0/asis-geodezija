@@ -46,7 +46,10 @@
   <div id="selectedPoint" class="selected-point" hidden>
    <strong id="selectedPointName">–</strong><span id="selectedPointCoords" class="hint"></span>
    <div class="target-values"><div><span class="label">Atstumas iki pasirinkto taško</span><strong id="selectedPointDistance">–</strong></div></div>
+   <div class="actions"><button id="routeToPoint" type="button">Rodyti privažiavimą</button><button id="clearRoute" type="button" class="subtle" hidden>Pašalinti maršrutą</button></div>
+   <p id="routeStatus" class="hint" role="status">Maršrutas skaičiuojamas pagal kelius, kai jo paprašai. Tam reikia interneto.</p>
   </div>
+  <p class="hint">Kelių maršrutas: <a href="https://routing.openstreetmap.de/about.html" target="_blank" rel="noopener">OSRM / FOSSGIS</a> ir <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener">OpenStreetMap duomenys</a>. Maršrutas gali baigtis ties artimiausiu privažiuojamu keliu.</p>
  </section>
  <section class="card alignment" aria-label="Kelio ašies importas">
   <h2>Kelio ašis</h2>
@@ -62,5 +65,5 @@
  <p class="hint">Piketažas rodomas 1 m žingsniu. Atstumas iki ašies, kai jis mažesnis nei 15 m, rodomas 0,01 m žingsniu; toliau – 1 m žingsniu. LKS94 skaičiuojamos iš telefono WGS84 vietos; rodomi skaitmenys po kablelio nereiškia tokio GPS tikslumo. Ašis ir koordinatės lieka šiame įrenginyje, kol pats nepasirenki jų bendrinti. Žemėlapio fonui reikia interneto.</p>
  <p class="hint"><a href="privacy.html">Privatumo informacija</a></p>
 </main>
-<script src="vendor/leaflet/leaflet.js"></script><script src="alignment.js?v=5"></script><script src="points.js?v=1"></script><script src="label-layout.js?v=1"></script><script src="app.js?v=14"></script>
+<script src="vendor/leaflet/leaflet.js"></script><script src="alignment.js?v=5"></script><script src="points.js?v=1"></script><script src="label-layout.js?v=1"></script><script src="app.js?v=15"></script>
 </body></html>

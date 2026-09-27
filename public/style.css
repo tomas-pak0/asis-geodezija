@@ -4,3 +4,4 @@
 .points-section{margin:16px 0}.selected-point{border-top:1px solid #363b42;margin-top:14px;padding-top:14px}.selected-point>strong,.selected-point>span{display:block;margin-bottom:8px}.selected-point .target-values{grid-template-columns:1fr}.survey-popup-distance{font-size:1.1rem;font-weight:700;margin-top:5px}
 .survey-number-icon{display:flex;align-items:center;justify-content:center;box-sizing:border-box;background:#101216;color:#fff;border:1px solid #f7c85e;border-radius:5px;box-shadow:0 1px 4px #10121688;font:700 11px system-ui;white-space:nowrap;pointer-events:none}
 .point-toggle{display:flex;align-items:center;gap:9px;margin:12px 0;color:#f5f6f8;font-size:.9rem;cursor:pointer}.point-toggle input{width:18px;height:18px;margin:0;accent-color:#ed3948}
+.selected-point .actions{flex-wrap:wrap}.survey-popup-route{font-size:.86rem;margin-top:6px}.survey-popup-action{display:block;font-size:.8rem;padding:7px 10px;margin-top:9px}.points-section a{color:#72d7ff}

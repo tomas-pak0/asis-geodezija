@@ -11,6 +11,18 @@ let target=null,targetMarker=null,targetLine=null,targetFitOnFirstFix=false;
 let surveyPoints=[],surveyLayer=null,selectedSurveyIndex=-1,surveyLine=null,surveyMarkers=[],surveyPopupDistance=null;
 const surveyStyle={radius:6,color:'#101216',weight:2,fillColor:'#f7c85e',fillOpacity:1};
 const selectedSurveyStyle={radius:8,color:'#101216',weight:2,fillColor:'#fff',fillOpacity:1};
+function updateSurveyLabels(){
+ const show=map.getZoom()>=17,bounds=show?map.getBounds().pad(.15):null;
+ surveyMarkers.forEach((marker,i)=>{
+  if(show&&bounds.contains(marker.getLatLng())){
+   if(!marker.getTooltip()){
+    const label=document.createElement('span');label.textContent=String(surveyPoints[i].id);
+    marker.bindTooltip(label,{permanent:true,direction:'right',offset:[9,0],className:'survey-point-label',interactive:false}).openTooltip();
+   }
+  }else if(marker.getTooltip())marker.unbindTooltip();
+ });
+}
+map.on('zoomend moveend',updateSurveyLabels);
 const stationGroup=()=>Number($('stationFormat').value);
 function connectivity(){
  const c=navigator.connection;
@@ -170,6 +182,7 @@ function showSurveyPoints(points,name,skipped=0,save=true){
  $('selectedPoint').hidden=true;$('clearPoints').hidden=false;
  $('pointsStatus').textContent=name+' · '+points.length+' taškų'+(skipped?' · praleista netinkamų eilučių: '+skipped:'')+'. Paspausk tašką žemėlapyje.';
  map.fitBounds(L.latLngBounds(points.map(p=>[p.latitude,p.longitude])),{padding:[35,35],maxZoom:17});follow=false;
+ updateSurveyLabels();
  if(save)try{localStorage.setItem('asis-points',JSON.stringify({points,name,skipped}))}
  catch{$('pointsStatus').textContent+=' Nepavyko išsaugoti taškų; kitą kartą failą reikės įkelti iš naujo.'}
 }

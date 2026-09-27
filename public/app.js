@@ -11,19 +11,33 @@ let target=null,targetMarker=null,targetLine=null,targetFitOnFirstFix=false;
 let surveyPoints=[],surveyLayer=null,selectedSurveyIndex=-1,surveyLine=null,surveyMarkers=[],surveyPopupDistance=null;
 const surveyStyle={radius:6,color:'#101216',weight:2,fillColor:'#f7c85e',fillOpacity:1};
 const selectedSurveyStyle={radius:8,color:'#101216',weight:2,fillColor:'#fff',fillOpacity:1};
+const surveyLabelsLayer=L.layerGroup().addTo(map);
 function updateSurveyLabels(){
+ surveyLabelsLayer.clearLayers();
  const bounds=map.getBounds(),center=map.getCenter();
  const width=map.distance([center.lat,bounds.getWest()],[center.lat,bounds.getEast()]);
- const show=$('showPointNumbers').checked&&width<=1000;
- const visible=show?bounds.pad(.15):null;
- surveyMarkers.forEach((marker,i)=>{
-  if(show&&visible.contains(marker.getLatLng())){
-   if(!marker.getTooltip()){
-    const label=document.createElement('span');label.textContent=String(surveyPoints[i].id);
-    marker.bindTooltip(label,{permanent:true,direction:'right',offset:[9,0],className:'survey-point-label',interactive:false}).openTooltip();
-   }
-  }else if(marker.getTooltip())marker.unbindTooltip();
+ if(!$('showPointNumbers').checked||width>1000||!surveyMarkers.length)return;
+ const size=map.getSize(),ctx=document.createElement('canvas').getContext('2d');
+ if(ctx)ctx.font='700 11px system-ui';
+ const visible=surveyMarkers.map((marker,index)=>{
+  const point=map.latLngToContainerPoint(marker.getLatLng());
+  return {marker,index,x:point.x,y:point.y};
+ }).filter(item=>item.x>=-10&&item.x<=size.x+10&&item.y>=-10&&item.y<=size.y+10);
+ const obstacles=visible.map(p=>({x:p.x-9,y:p.y-9,w:18,h:18}));
+ for(const other of [pin,targetMarker])if(other){
+  const p=map.latLngToContainerPoint(other.getLatLng());
+  obstacles.push({x:p.x-15,y:p.y-15,w:30,h:30});
+ }
+ const items=visible.map(p=>{
+  const label=String(surveyPoints[p.index].id);
+  return {...p,label,w:Math.max(21,Math.ceil(ctx?.measureText(label).width||label.length*7)+12),h:20};
  });
+ items.sort((a,b)=>(b.index===selectedSurveyIndex)-(a.index===selectedSurveyIndex));
+ for(const item of AsisLabelLayout.place(items,obstacles,{width:size.x,height:size.y})){
+  const content=document.createElement('span');content.textContent=item.label;
+  const icon=L.divIcon({className:'survey-number-icon',html:content,iconSize:[item.w,item.h],iconAnchor:[item.x-item.box.x,item.y-item.box.y]});
+  L.marker(item.marker.getLatLng(),{icon,interactive:false,keyboard:false}).addTo(surveyLabelsLayer);
+ }
 }
 map.on('zoomend moveend resize',updateSurveyLabels);
 $('showPointNumbers').checked=localStorage.getItem('asis-show-point-numbers')!=='false';
@@ -208,6 +222,7 @@ function selectSurveyPoint(i){
  const p=surveyPoints[i];if(!p)return;
  if(selectedSurveyIndex>=0)surveyMarkers[selectedSurveyIndex]?.setStyle(surveyStyle);
  selectedSurveyIndex=i;surveyMarkers[i].setStyle(selectedSurveyStyle);
+ updateSurveyLabels();
  $('selectedPoint').hidden=false;$('selectedPointName').textContent='Taškas '+p.id+(p.name?' · '+p.name:'');
  $('selectedPointCoords').textContent='X '+p.x.toFixed(3)+' · Y '+p.y.toFixed(3)+' · H '+p.z.toFixed(3)+' m';
  const popup=document.createElement('div'),title=document.createElement('strong'),distance=document.createElement('div');
@@ -229,6 +244,7 @@ $('pointsFile').onchange=async event=>{
 $('clearPoints').onclick=()=>{
  surveyLayer?.remove();surveyLine?.remove();surveyLayer=surveyLine=null;
  surveyMarkers=[];surveyPoints=[];selectedSurveyIndex=-1;surveyPopupDistance=null;
+ surveyLabelsLayer.clearLayers();
  $('selectedPoint').hidden=true;$('clearPoints').hidden=true;
  $('pointsStatus').textContent='Taškai pašalinti. Gali įkelti kitą failą.';
  localStorage.removeItem('asis-points');

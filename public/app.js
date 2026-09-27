@@ -87,7 +87,7 @@ function alignmentDetails(c){
  const r=KurAsAlignment.nearest(alignment,[c.latitude,c.longitude]);if(!r)return;
  const station='PK '+KurAsAlignment.station(alignment.startMetres+r.metres,stationGroup());
  const distance=r.offset<15?r.offset.toFixed(2).replace('.',','):String(Math.round(r.offset));
- const side=r.offset<.005?'ašyje':r.side==='dešinėje'?'d':'k';
+ const side=r.offset<.005?'ašyje':r.side==='dešinėje'?(window.AsisLanguage==='en'?'R':'d'):(window.AsisLanguage==='en'?'L':'k');
  const offset=distance+' m'+(side==='ašyje'?' (ašyje)':' ('+side+')');
  return {station,offset,point:r.point};
 }
@@ -167,7 +167,7 @@ function updateTarget(c){
  $('targetDistance').textContent=distance>=1000?(distance/1000).toFixed(2).replace('.',',')+' km':distance.toFixed(1).replace('.',',')+' m';
  if(distance<1){$('targetBearing').textContent='Taškas ties tavo vieta';return}
  const degrees=(Math.atan2(deltaEast,deltaNorth)*180/Math.PI+360)%360;
- const directions=['Š','ŠR','R','PR','P','PV','V','ŠV'];
+ const directions=window.AsisLanguage==='en'?['N','NE','E','SE','S','SW','W','NW']:['Š','ŠR','R','PR','P','PV','V','ŠV'];
  $('targetBearing').textContent=degrees.toFixed(0)+'° ('+directions[Math.round(degrees/45)%8]+')';
 }
 function showTarget(x,y,save=true,mode='lks'){
@@ -384,7 +384,7 @@ catch{localStorage.removeItem('asis-points')}
 try{const saved=JSON.parse(localStorage.getItem('asis-boundary'));if(saved?.layers?.length)showBoundary(saved,saved.name,false)}
 catch{localStorage.removeItem('asis-boundary')}
 function ageLabel(seconds){if(seconds<60)return seconds+' s';if(seconds<3600)return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');return Math.floor(seconds/3600)+':'+String(Math.floor(seconds/60)%60).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')}
-setInterval(()=>{if(last){const age=Math.max(0,Math.floor((Date.now()-last.timestamp)/1000));$('updated').textContent='Matavimas '+new Date(last.timestamp).toLocaleTimeString('lt-LT')+' · prieš '+ageLabel(age);if(age>30)$('live').textContent='Duomenys neatnaujinami'}},1000);
+setInterval(()=>{if(last){const age=Math.max(0,Math.floor((Date.now()-last.timestamp)/1000));$('updated').textContent='Matavimas '+new Date(last.timestamp).toLocaleTimeString(window.AsisLanguage==='en'?'en-GB':'lt-LT')+' · prieš '+ageLabel(age);if(age>30)$('live').textContent='Duomenys neatnaujinami'}},1000);
 function lksText(c){
  if(c.latitude<53.89||c.latitude>56.45||c.longitude<19.02||c.longitude>26.82)return 'Už LKS94 taikymo srities';
  const [north,east]=KurAsAlignment.toLks94(c.latitude,c.longitude);
@@ -393,7 +393,7 @@ function lksText(c){
 function shareText(p){
  const c=p.coords;
  const lines=['Ašis · vietos koordinatės',
-  'Matavimas: '+new Date(p.timestamp).toLocaleString('lt-LT'),
+  'Matavimas: '+new Date(p.timestamp).toLocaleString(window.AsisLanguage==='en'?'en-GB':'lt-LT'),
   'WGS84: '+c.latitude.toFixed(6)+', '+c.longitude.toFixed(6),
   'LKS94 (EPSG:3346): '+lksText(c)];
  const details=alignmentDetails(c);
@@ -402,10 +402,10 @@ function shareText(p){
 }
 $('share').onclick=async()=>{
  if(!last)return;
- const content=shareText(last);
+ const content=window.AsisLanguage==='en'?window.AsisTranslate(shareText(last)):shareText(last);
  $('sharePreview').hidden=true;
  if(window.AsisNativeShare){
-  window.AsisNativeShare.send(content);
+  window.AsisNativeShare.send(content,window.AsisLanguage);
   $('shareStatus').textContent='Pasirink, kur siųsti koordinates.';
   return;
  }

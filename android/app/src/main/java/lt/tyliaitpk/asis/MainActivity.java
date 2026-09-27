@@ -34,6 +34,9 @@ import java.util.Locale;
 public class MainActivity extends Activity {
     private static final String ORIGIN = "https://appassets.androidplatform.net";
     private static final String PAGE = ORIGIN + "/assets/index.html";
+    private static final String PRIVACY = ORIGIN + "/assets/privacy.html";
+    private static final String PRIVACY_EN = ORIGIN + "/assets/privacy.en.html";
+    private static boolean isInternalPage(String url){return PAGE.equals(url)||PRIVACY.equals(url)||PRIVACY_EN.equals(url);}
     private static final int LOCATION_REQUEST = 12, FILE_REQUEST = 14;
     private WebView webView;
     private ValueCallback<Uri[]> pendingFiles;
@@ -55,12 +58,12 @@ public class MainActivity extends Activity {
         });}
     }
     private final class NativeShare {
-        @JavascriptInterface public void send(String text){runOnUiThread(()->{
+        @JavascriptInterface public void send(String text,String language){runOnUiThread(()->{
             if(webView==null||!PAGE.equals(webView.getUrl())||text==null||text.isEmpty()||text.length()>2000)return;
             Intent send=new Intent(Intent.ACTION_SEND);
             send.setType("text/plain");
             send.putExtra(Intent.EXTRA_TEXT,text);
-            try{startActivity(Intent.createChooser(send,"Bendrinti koordinates"));}
+            try{startActivity(Intent.createChooser(send,"en".equals(language)?"Share coordinates":"Bendrinti koordinates"));}
             catch(ActivityNotFoundException ignored){
                 sendToPage("document.getElementById('shareStatus').textContent='Nėra programėlės tekstui bendrinti.';");
             }
@@ -108,7 +111,7 @@ public class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient(){
             @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){return loader.shouldInterceptRequest(request.getUrl());}
             @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
-                if(request.isForMainFrame()&&!PAGE.equals(request.getUrl().toString())){
+                if(request.isForMainFrame()&&!isInternalPage(request.getUrl().toString())){
                     try{startActivity(new Intent(Intent.ACTION_VIEW,request.getUrl()));}catch(ActivityNotFoundException ignored){}
                     return true;
                 }
@@ -231,5 +234,9 @@ public class MainActivity extends Activity {
         stopLocation();
         if(pendingFiles!=null){pendingFiles.onReceiveValue(null);pendingFiles=null;}
         if(webView!=null)webView.destroy();super.onDestroy();
+    }
+    @Override public void onBackPressed(){
+        if(webView!=null&&webView.canGoBack())webView.goBack();
+        else super.onBackPressed();
     }
 }

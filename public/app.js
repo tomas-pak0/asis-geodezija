@@ -48,15 +48,8 @@ $('showPointNumbers').onchange=()=>{
  updateSurveyLabels();
 };
 const stationGroup=()=>Number($('stationFormat').value);
-function connectivity(){
- const c=navigator.connection;
- $('network').textContent=navigator.onLine?(c?.effectiveType?'Prisijungta · '+c.effectiveType:'Prisijungta'):'Nėra ryšio';
-}
-addEventListener('online',connectivity);addEventListener('offline',connectivity);
-navigator.connection?.addEventListener?.('change',connectivity);connectivity();
 window.AsisApplyNativeTelemetry=t=>{
  if(t.gps)$('gps').textContent=t.gps;
- if(t.network)$('network').textContent=t.network;
 };
 function stationVisibility(){
  if(!stationLayer)return;

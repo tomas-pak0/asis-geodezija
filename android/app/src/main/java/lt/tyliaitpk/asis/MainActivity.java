@@ -9,18 +9,11 @@ import android.location.GnssStatus;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.telephony.CellSignalStrength;
-import android.telephony.SignalStrength;
-import android.telephony.TelephonyCallback;
-import android.telephony.TelephonyManager;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
@@ -36,7 +29,6 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import androidx.webkit.WebViewAssetLoader;
 import org.json.JSONObject;
-import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
@@ -48,10 +40,6 @@ public class MainActivity extends Activity {
     private GeolocationPermissions.Callback pendingLocation;
     private String pendingOrigin;
     private LocationManager locationManager;
-    private TelephonyManager telephonyManager;
-    private ConnectivityManager connectivityManager;
-    private ConnectivityManager.NetworkCallback networkCallback;
-    private TelephonyCallback signalCallback;
     private boolean gnssTracking, pageReady, locationRequested, locationListening;
     private Location lastLocation;
     private final LocationListener locationListener=this::onLocation;
@@ -78,7 +66,7 @@ public class MainActivity extends Activity {
             }
         });}
     }
-    private String gpsText="Laukiama vietos leidimo", signalText="Neprieinamas", networkText="Tikrinama…";
+    private String gpsText="Laukiama vietos leidimo";
     private final GnssStatus.Callback gnssCallback=new GnssStatus.Callback() {
         @Override public void onStarted(){gpsText="Ieškoma palydovų…";showTelemetry();}
         @Override public void onStopped(){gpsText="GPS imtuvas sustabdytas";showTelemetry();}
@@ -93,8 +81,6 @@ public class MainActivity extends Activity {
         super.onCreate(state);
         getWindow().setStatusBarColor(0xff101216);getWindow().setNavigationBarColor(0xff101216);
         locationManager=(LocationManager)getSystemService(LOCATION_SERVICE);
-        telephonyManager=(TelephonyManager)getSystemService(TELEPHONY_SERVICE);
-        connectivityManager=(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);
         WebViewAssetLoader loader=new WebViewAssetLoader.Builder()
             .addPathHandler("/assets/",new WebViewAssetLoader.AssetsPathHandler(this)).build();
         webView=new WebView(this);webView.setBackgroundColor(0xff101216);
@@ -223,56 +209,22 @@ public class MainActivity extends Activity {
                 catch(SecurityException|IllegalArgumentException ex){gpsText="Palydovų duomenys neprieinami";}
             }else gpsText="Palydovams reikia tikslios vietos leidimo";
         }
-        if(checkSelfPermission(Manifest.permission.READ_PHONE_STATE)==PackageManager.PERMISSION_GRANTED){
-            if(Build.VERSION.SDK_INT>=31&&signalCallback==null){
-                signalCallback=new SignalListener();
-                try{telephonyManager.registerTelephonyCallback(getMainExecutor(),signalCallback);}
-                catch(SecurityException|UnsupportedOperationException ex){signalCallback=null;}
-            }
-            if(Build.VERSION.SDK_INT>=28)try{SignalStrength s=telephonyManager.getSignalStrength();if(s!=null)showSignal(s);}
-                catch(SecurityException|UnsupportedOperationException ignored){}
-        }else signalText="Leidimas nesuteiktas";
-        showTelemetry();
-    }
-    private final class SignalListener extends TelephonyCallback implements TelephonyCallback.SignalStrengthsListener{
-        @Override public void onSignalStrengthsChanged(SignalStrength s){showSignal(s);}
-    }
-    private void showSignal(SignalStrength signal){
-        List<CellSignalStrength> cells=signal.getCellSignalStrengths();
-        int dbm=cells.isEmpty()?CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN:cells.get(0).getDbm();
-        signalText=signal.getLevel()+"/4"+(dbm==CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN||dbm==Integer.MAX_VALUE?"":" · "+dbm+" dBm");
-        showTelemetry();
-    }
-    private void updateNetwork(){
-        try{Network active=connectivityManager.getActiveNetwork();NetworkCapabilities caps=active==null?null:connectivityManager.getNetworkCapabilities(active);
-            networkText=caps==null?"Nėra ryšio":caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)?"Wi-Fi":caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)?"Mobilieji duomenys":"Kitas tinklas";
-        }catch(SecurityException ignored){networkText="Neprieinamas";}
         showTelemetry();
     }
     private void showTelemetry(){
         if(webView==null||!pageReady)return;
         String script="if(window.AsisApplyNativeTelemetry)window.AsisApplyNativeTelemetry({gps:"
-            +JSONObject.quote(gpsText)+",network:"+JSONObject.quote(networkText+" · Mobilusis "+signalText)+"});";
+            +JSONObject.quote(gpsText)+"});";
         runOnUiThread(()->{if(pageReady)webView.evaluateJavascript(script,null);});
     }
     @Override protected void onResume(){
         super.onResume();if(webView!=null)webView.onResume();
         if(locationRequested&&pageReady)startLocation();
         if(locationManager!=null&&hasLocationPermission())startTelemetry();
-        if(connectivityManager!=null&&networkCallback==null){
-            networkCallback=new ConnectivityManager.NetworkCallback(){
-                @Override public void onAvailable(Network n){runOnUiThread(()->updateNetwork());}
-                @Override public void onLost(Network n){runOnUiThread(()->updateNetwork());}
-                @Override public void onCapabilitiesChanged(Network n,NetworkCapabilities c){runOnUiThread(()->updateNetwork());}
-            };connectivityManager.registerDefaultNetworkCallback(networkCallback);
-        }
-        if(connectivityManager!=null)updateNetwork();
     }
     @Override protected void onPause(){
         stopLocation();
         if(gnssTracking){locationManager.unregisterGnssStatusCallback(gnssCallback);gnssTracking=false;}
-        if(signalCallback!=null&&Build.VERSION.SDK_INT>=31){telephonyManager.unregisterTelephonyCallback(signalCallback);signalCallback=null;}
-        if(networkCallback!=null){connectivityManager.unregisterNetworkCallback(networkCallback);networkCallback=null;}
         if(webView!=null)webView.onPause();super.onPause();
     }
     @Override protected void onDestroy(){

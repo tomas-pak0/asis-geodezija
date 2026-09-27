@@ -1,5 +1,11 @@
 'use strict';
 const $=id=>document.getElementById(id);
+function fileLabel(id,file){
+ const label=document.querySelector('[data-file-name="'+id+'"]');
+ if(!label)return;
+ label.toggleAttribute('data-user-file',Boolean(file));
+ label.textContent=file?.name||(window.AsisLanguage==='en'?'No file selected':'Failas nepasirinktas');
+}
 const map=L.map('map',{zoomControl:true,zoomSnap:0,zoomAnimation:true}).setView([55.1694,23.8813],7);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',maxZoom:19
@@ -112,6 +118,7 @@ function useAlignment(points,name,startMetres){
 }
 $('alignmentFile').onchange=async event=>{
  const file=event.target.files[0];if(!file)return;
+ fileLabel('alignmentFile',file);
  try{
   if(file.size>(/\.xml$/i.test(file.name)?20000000:1000000))throw Error('Failas per didelis: XML iki 20 MB, kiti iki 1 MB.');
   const parsed=KurAsAlignment.parse(await file.text(),file.name);
@@ -123,7 +130,7 @@ $('alignmentFile').onchange=async event=>{
    const first=parsed.alignments[0];useAlignment(first.points,file.name+' · '+first.name,first.startMetres);
    if(parsed.warnings?.length)$('alignmentStatus').textContent+=' Praleistos ašys: '+parsed.warnings.join('; ');
   }else{xmlAlignments=null;$('alignmentChoiceLabel').hidden=true;useAlignment(parsed,file.name,Number($('stationStart').value))}
- }catch(e){$('alignmentStatus').textContent='Nepavyko įkelti ašies: '+e.message;event.target.value=''}
+ }catch(e){$('alignmentStatus').textContent='Nepavyko įkelti ašies: '+e.message;event.target.value='';fileLabel('alignmentFile',null)}
 };
 $('alignmentChoice').onchange=()=>{
  const a=xmlAlignments?.[Number($('alignmentChoice').value)];if(!a)return;
@@ -135,6 +142,7 @@ $('stationFormat').onchange=()=>{localStorage.setItem('asis-station-format',$('s
 $('clearAlignment').onclick=()=>{
  alignment=null;alignmentLayer?.remove();stationLayer?.remove();nearestLine?.remove();alignmentLayer=stationLayer=nearestLine=null;
  pin?.unbindTooltip();xmlAlignments=null;$('alignmentChoiceLabel').hidden=true;$('alignmentFile').value='';
+ fileLabel('alignmentFile',null);
  $('clearAlignment').hidden=true;$('stationValue').textContent='Įkelk ašį';$('offsetValue').textContent='–';
  $('alignmentStatus').textContent='Ašis pašalinta. Gali įkelti kitą failą.';localStorage.removeItem('asis-alignment');
 };
@@ -318,11 +326,12 @@ function selectSurveyPoint(i){
 }
 $('pointsFile').onchange=async event=>{
  const file=event.target.files[0];if(!file)return;
+ fileLabel('pointsFile',file);
  try{
   if(file.size>2000000)throw Error('Failas per didelis (iki 2 MB).');
   const {points,skipped}=AsisPoints.parse(await file.text(),file.name);
   showSurveyPoints(points,file.name,skipped);
- }catch(error){$('pointsStatus').textContent='Nepavyko įkelti taškų: '+error.message}
+ }catch(error){$('pointsStatus').textContent='Nepavyko įkelti taškų: '+error.message;fileLabel('pointsFile',null)}
  event.target.value='';
 };
 $('clearPoints').onclick=()=>{
@@ -330,6 +339,7 @@ $('clearPoints').onclick=()=>{
  surveyLayer?.remove();surveyLine?.remove();surveyLayer=surveyLine=null;
  surveyMarkers=[];surveyPoints=[];selectedSurveyIndex=-1;surveyPopupDistance=surveyPopupRoute=surveyPopupRouteButton=null;
  surveyLabelsLayer.clearLayers();
+ fileLabel('pointsFile',null);
  $('selectedPoint').hidden=true;$('clearPoints').hidden=true;
  $('pointsStatus').textContent='Taškai pašalinti. Gali įkelti kitą failą.';
  localStorage.removeItem('asis-points');
@@ -362,9 +372,10 @@ function showBoundary(parsed,name,save=true){
 }
 $('boundaryFile').onchange=async event=>{
  const file=event.target.files[0];if(!file)return;
+ fileLabel('boundaryFile',file);
  $('boundaryStatus').textContent='Skaitomas '+file.name+'…';
  try{showBoundary(await AsisBoundary.parse(file,$('boundarySystem').value),file.name)}
- catch(error){$('boundaryStatus').textContent='Nepavyko įkelti ribos: '+error.message}
+ catch(error){$('boundaryStatus').textContent='Nepavyko įkelti ribos: '+error.message;fileLabel('boundaryFile',null)}
  event.target.value='';
 };
 $('boundaryLayer').onchange=()=>renderBoundary(true);
@@ -372,6 +383,7 @@ $('showBoundary').onchange=()=>renderBoundary(false);
 $('clearBoundary').onclick=()=>{
  boundaryLayer?.remove();boundaryLayer=boundary=null;
  $('boundaryFile').value='';$('clearBoundary').hidden=true;$('boundaryLayerLabel').hidden=true;
+ fileLabel('boundaryFile',null);
  $('boundaryStatus').textContent='Riba pašalinta. Gali įkelti kitą failą.';
  localStorage.removeItem('asis-boundary');
 };

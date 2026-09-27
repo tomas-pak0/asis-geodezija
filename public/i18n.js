@@ -10,6 +10,8 @@ const translations = new Map(Object.entries({
  'GPS / palydovai':'GPS / satellites',
  ' ir ':' and ',
  'Kalba':'Language',
+ 'Pasirinkti failą':'Choose file',
+ 'Failas nepasirinktas':'No file selected',
  'Mano vieta':'My location',
  'Matavimas: –':'Measurement: –',
  'Piketažas':'Chainage',
@@ -221,6 +223,7 @@ if(window.AsisLanguage==='en'){
  privacy.href='privacy.en.html';
  const translateNodes=root=>{
   if(root.nodeType===Node.TEXT_NODE){
+   if(root.parentElement?.closest('[data-user-file]'))return;
    const value=translate(root.nodeValue);
    if(value!==root.nodeValue)root.nodeValue=value;
   }else if(root.nodeType===Node.ELEMENT_NODE && !root.closest('script,style')){

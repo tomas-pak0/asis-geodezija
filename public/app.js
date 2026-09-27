@@ -8,7 +8,7 @@ const markerIcon=L.divIcon({className:'',html:'<span class="position-marker"></s
 const targetIcon=L.divIcon({className:'target-marker-icon',html:'<span class="target-marker"></span>',iconSize:[26,26],iconAnchor:[13,13]});
 let watcher=null,last=null,pin=null,follow=true,alignment=null,alignmentLayer=null,stationLayer=null,nearestLine=null,xmlAlignments=null,xmlFileName='';
 let target=null,targetMarker=null,targetLine=null,targetFitOnFirstFix=false;
-let surveyPoints=[],surveyLayer=null,selectedSurveyIndex=-1,surveyLine=null,surveyMarkers=[];
+let surveyPoints=[],surveyLayer=null,selectedSurveyIndex=-1,surveyLine=null,surveyMarkers=[],surveyPopupDistance=null;
 const stationGroup=()=>Number($('stationFormat').value);
 function connectivity(){
  const c=navigator.connection;
@@ -166,7 +166,7 @@ function showSurveyPoints(points,name,skipped=0,save=true){
   marker.on('click',()=>selectSurveyPoint(i));marker.addTo(layer);markers.push(marker);
  });
  surveyLayer?.remove();surveyLine?.remove();surveyLine=null;
- surveyPoints=points;surveyLayer=layer.addTo(map);surveyMarkers=markers;selectedSurveyIndex=-1;
+ surveyPoints=points;surveyLayer=layer.addTo(map);surveyMarkers=markers;selectedSurveyIndex=-1;surveyPopupDistance=null;
  $('selectedPoint').hidden=true;$('clearPoints').hidden=false;
  $('pointsStatus').textContent=name+' · '+points.length+' taškų'+(skipped?' · praleista netinkamų eilučių: '+skipped:'')+'. Paspausk tašką žemėlapyje.';
  map.fitBounds(L.latLngBounds(points.map(p=>[p.latitude,p.longitude])),{padding:[35,35],maxZoom:17});follow=false;
@@ -175,10 +175,11 @@ function showSurveyPoints(points,name,skipped=0,save=true){
 }
 function updateSurveyDistance(c){
  const p=surveyPoints[selectedSurveyIndex];if(!p)return;
- if(!c){$('selectedPointDistance').textContent='Laukiama vietos';return}
- if(c.latitude<53.89||c.latitude>56.45||c.longitude<19.02||c.longitude>26.82){$('selectedPointDistance').textContent='Už LKS94 srities';return}
+ const setDistance=value=>{$('selectedPointDistance').textContent=value;if(surveyPopupDistance)surveyPopupDistance.textContent=value};
+ if(!c){setDistance('Laukiama vietos');return}
+ if(c.latitude<53.89||c.latitude>56.45||c.longitude<19.02||c.longitude>26.82){setDistance('Už LKS94 srities');return}
  const [x,y]=KurAsAlignment.toLks94(c.latitude,c.longitude),d=Math.hypot(p.x-x,p.y-y);
- $('selectedPointDistance').textContent=d>=1000?(d/1000).toFixed(2).replace('.',',')+' km':d.toFixed(1).replace('.',',')+' m';
+ setDistance(d>=1000?(d/1000).toFixed(2).replace('.',',')+' km':d.toFixed(1).replace('.',',')+' m');
  if(!surveyLine)surveyLine=L.polyline([],{color:'#f7c85e',weight:2,dashArray:'6,5',interactive:false}).addTo(map);
  surveyLine.setLatLngs([[c.latitude,c.longitude],[p.latitude,p.longitude]]);
 }
@@ -188,7 +189,12 @@ function selectSurveyPoint(i){
  selectedSurveyIndex=i;surveyMarkers[i]?.getElement()?.querySelector('.survey-point')?.classList.add('selected');
  $('selectedPoint').hidden=false;$('selectedPointName').textContent='Taškas '+p.id+(p.name?' · '+p.name:'');
  $('selectedPointCoords').textContent='X '+p.x.toFixed(3)+' · Y '+p.y.toFixed(3)+' · H '+p.z.toFixed(3)+' m';
+ const popup=document.createElement('div'),title=document.createElement('strong'),distance=document.createElement('div');
+ title.textContent='Taškas '+p.id+(p.name?' · '+p.name:'');
+ distance.className='survey-popup-distance';popup.append(title,distance);surveyPopupDistance=distance;
+ surveyMarkers[i].bindPopup(popup,{autoPan:true}).openPopup();
  updateSurveyDistance(last?.coords);
+ if(!last&&!$('start').disabled)$('start').click();
 }
 $('pointsFile').onchange=async event=>{
  const file=event.target.files[0];if(!file)return;
@@ -201,7 +207,7 @@ $('pointsFile').onchange=async event=>{
 };
 $('clearPoints').onclick=()=>{
  surveyLayer?.remove();surveyLine?.remove();surveyLayer=surveyLine=null;
- surveyMarkers=[];surveyPoints=[];selectedSurveyIndex=-1;
+ surveyMarkers=[];surveyPoints=[];selectedSurveyIndex=-1;surveyPopupDistance=null;
  $('selectedPoint').hidden=true;$('clearPoints').hidden=true;
  $('pointsStatus').textContent='Taškai pašalinti. Gali įkelti kitą failą.';
  localStorage.removeItem('asis-points');

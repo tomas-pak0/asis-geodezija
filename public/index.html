@@ -5,7 +5,7 @@
 <meta name="theme-color" content="#101216"><meta name="description" content="Vieta, kelio ašis ir piketažas tavo telefone.">
 <title>Ašis · geodezinė vieta</title><link rel="icon" href="icon.svg" type="image/svg+xml">
 <script>window.AsisLanguage=localStorage.getItem('asis-language')==='en'?'en':'lt';document.documentElement.lang=window.AsisLanguage;</script>
-<link rel="stylesheet" href="vendor/leaflet/leaflet.css"><link rel="stylesheet" href="style.css?v=18">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css"><link rel="stylesheet" href="style.css?v=19">
 </head>
 <body>
 <header><img src="icon.svg" alt=""><div class="header-title"><h1>Ašis</h1><p>Vieta · piketažas · atstumas iki ašies</p></div><nav class="language-switch" aria-label="Kalba"><button type="button" data-language="lt" aria-label="Lietuvių kalba"><img src="flag-lt.svg" alt=""> LT</button><button type="button" data-language="en" aria-label="English language"><img src="flag-en.svg" alt=""> EN</button></nav></header>
@@ -74,7 +74,7 @@
   <p id="alignmentStatus" class="hint">Įkelk Civil 3D LandXML ašį (LKS94 arba WGS84). Tinka ir WGS84 GeoJSON, GPX bei CSV. Failas saugomas tik šiame įrenginyje.</p>
   <button id="clearAlignment" type="button" class="subtle" hidden>Pašalinti ašį</button>
  </details>
- <div class="actions"><button id="start" type="button">Rodyti vietą</button><button id="stop" type="button" class="subtle" disabled>Sustabdyti</button></div>
+ <div class="actions location-actions"><button id="start" type="button">Rodyti vietą</button><button id="stop" type="button" class="subtle" disabled>Sustabdyti</button></div>
  <p class="hint">Piketažas rodomas 1 m žingsniu. Atstumas iki ašies, kai jis mažesnis nei 15 m, rodomas 0,01 m žingsniu; toliau – 1 m žingsniu. LKS94 skaičiuojamos iš telefono WGS84 vietos; rodomi skaitmenys po kablelio nereiškia tokio GPS tikslumo. Ašis ir koordinatės lieka šiame įrenginyje, kol pats nepasirenki jų bendrinti. Žemėlapio fonui reikia interneto.</p>
  <p class="hint privacy-link"><a href="privacy.html">Privatumo informacija</a></p>
 </main>

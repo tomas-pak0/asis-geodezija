@@ -1,6 +1,6 @@
 # Ašis
 
-Atskira geodezinė Android programėlė: vieta žemėlapyje, GNSS palydovai, interneto būsena, Civil 3D LandXML ašis, piketažas ir atstumas iki ašies. Gyvo vietos bendrinimo, orų, adreso paieškos ir greičio rodmenų nėra.
+Atskira geodezinė Android programėlė: vieta žemėlapyje, GNSS palydovai, Civil 3D LandXML ašis, piketažas ir atstumas iki ašies. Gyvo vietos bendrinimo, orų, adreso paieškos ir greičio rodmenų nėra.
 
 ## Ką rodo
 
@@ -35,3 +35,7 @@ Atverkite `android/` katalogą Android Studio su JDK 17, Android SDK 36 ir Gradl
 Google Play leidimui reikės nuoseklaus pasirašymo rakto, pasirašyto Android App Bundle (`.aab`), privatumo politikos viešo URL bei Play Console deklaracijų. Debug APK nėra Play leidimas. Pagalbinis `privacy.html` tekstas gali būti paskelbtas kaip privatumo politikos puslapis.
 
 Vietos matavimas veikia tik kai programėlė atidaryta. Programėlė nesiunčia vietos į savo serverį ir automatiškai nebendrina jos su kitu asmeniu; pasirinkus bendrinimą, vietos tekstas perduodamas naudotojo pasirinktai programėlei. Žemėlapio plytelių užklausos siunčiamos OpenStreetMap, todėl plytelių serveris gali žinoti peržiūrimą žemėlapio sritį.
+
+## Google Play leidimas
+
+Surinkimo, pasirašymo, privatumo ir parduotuvės medžiagos instrukcijos yra [`play/README.md`](play/README.md). `main` šakoje automatiškai surenkamas derinimo APK ir nepasirašytas leidimo AAB. Įkėlimo raktas nelaikomas repozitorijoje.

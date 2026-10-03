@@ -57,11 +57,12 @@ jobs:
             adb install apk/app-debug.apk
             adb logcat -c
             adb shell wm size 1080x1920
+            adb shell wm density 440
             adb shell am start -W -n lt.tyliaitpk.asis/.MainActivity
             sleep 10
             adb exec-out screencap -p > play-screenshot-1.png
-            adb shell input swipe 540 1630 540 480 450
-            sleep 2
+            adb shell input swipe 540 1650 540 500 450
+            sleep 5
             adb exec-out screencap -p > play-screenshot-2.png
             adb logcat -d -v brief > crash-log.txt
             adb shell pidof lt.tyliaitpk.asis || { grep -m 1 -A 45 -B 6 'FATAL EXCEPTION' crash-log.txt || grep -E 'lt.tyliaitpk.asis|AndroidRuntime|am_crash|am_kill' crash-log.txt | tail -70; exit 1; }

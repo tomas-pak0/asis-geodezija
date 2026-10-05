@@ -26,7 +26,11 @@ jobs:
           curl -fLS --retry 3 --max-time 120 'https://cdn.jsdelivr.net/npm/@mlightcad/libredwg-web@0.7.14/wasm/libredwg-web.wasm' -o ../public/vendor/libredwg/wasm/libredwg-web.wasm
           echo '431576487027122a28e5ac99d91fe6366f81ecda743a4676878c75c85fe82c53  ../public/vendor/libredwg/wasm/libredwg-web.wasm' | sha256sum -c -
       - name: Build debug APK and unsigned release bundle
-        run: gradle --no-daemon :app:assembleDebug :app:bundleRelease
+        run: gradle --no-daemon :app:assembleDebug :app:assembleRelease :app:bundleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asis-unsigned-apk
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
       - uses: actions/upload-artifact@v4
         with:
           name: asis-unsigned-aab

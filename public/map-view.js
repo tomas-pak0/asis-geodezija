@@ -27,7 +27,7 @@ window.AsisMapView=(()=>{
   let courseFix=null,lastMotion=null,resetAnimation=null;
   let headingUp=localStorage.getItem('asis-map-orientation')==='heading';
   const street=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
-   maxNativeZoom:19,maxZoom:22,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+   maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
   });
   const photo=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
    maxNativeZoom:19,maxZoom:22,attribution:'<a href="https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9" target="_blank" rel="noopener">Esri World Imagery</a> · Esri, Vantor, Earthstar Geographics, GIS User Community'
@@ -35,6 +35,7 @@ window.AsisMapView=(()=>{
   let photoActive=false,activeLayer=null;
   function chooseLayer(usePhoto){
    activeLayer?.remove();photoActive=usePhoto;activeLayer=usePhoto?photo:street;activeLayer.addTo(map);
+   map.setMaxZoom(activeLayer.options.maxZoom);
    localStorage.setItem('asis-map-layer',usePhoto?'photo':'street');
    $('photoMap').setAttribute('aria-pressed',String(usePhoto));
    $('photoMap').textContent=text(usePhoto?'Žemėlapis':'Foto žemėlapis');
@@ -49,7 +50,6 @@ window.AsisMapView=(()=>{
    $('compass').setAttribute('aria-pressed',String(headingUp));
    const label=text(headingUp?'Grąžinti šiaurę į viršų':'Judėjimo kryptis viršuje');
    $('compass').setAttribute('aria-label',label);$('compass').title=label;
-   $('mapOrientation').textContent=text(headingUp?'Judėjimo kryptis viršuje':'Šiaurė viršuje');
    $('compassNeedle').style.transform='rotate('+map.getBearing()+'deg)';
   }
   function northUp(){
@@ -83,5 +83,59 @@ window.AsisMapView=(()=>{
   }
   return {update};
  }
- return {create,motion};
+ function follow(map,onManual=()=>{}){
+  let following=true,latest=null,anchor=null,candidate=null,manualHold=false,viewChosen=false;
+  function pause(resumeOnMovement=false){
+   following=false;manualHold=resumeOnMovement;viewChosen=true;anchor=latest;candidate=null;
+   map.stop();
+  }
+  function manual(){pause(true);onManual();}
+  // Leaflet's zoomstart does not reliably carry originalEvent. Observe the
+  // actual input, as in Kur aš?, so +/- buttons and pinch cannot restart GPS follow.
+  map.on('dragstart',manual);
+  const element=map.getContainer();
+  for(const type of ['wheel','touchstart','dblclick'])element.addEventListener(type,manual,{passive:true});
+  element.addEventListener('pointerdown',event=>{if(event.target.closest('.leaflet-control-zoom'))manual();});
+  element.addEventListener('click',event=>{if(event.target.closest('.leaflet-control-zoom'))manual();},{capture:true});
+  element.addEventListener('keydown',event=>{
+   if(['+','-','=','PageUp','PageDown','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))manual();
+  });
+  function goodFix(position){return Number.isFinite(position?.coords.accuracy)&&position.coords.accuracy>0&&position.coords.accuracy<=25;}
+  function update(position){
+   latest=position;
+   if(!following&&manualHold){
+    if(!anchor||(!goodFix(anchor)&&goodFix(position))){anchor=position;candidate=null;}
+    else if(goodFix(anchor)&&goodFix(position)){
+     const c=position.coords,a=anchor.coords;
+     const distance=map.distance([a.latitude,a.longitude],[c.latitude,c.longitude]);
+     const threshold=Math.max(50,2*a.accuracy,2*c.accuracy);
+     if(distance>=threshold){
+      // Two fixes at least a second apart avoid a single GPS jump moving the map.
+      if(candidate&&position.timestamp-candidate.timestamp>=1000&&position.timestamp-candidate.timestamp<=20000){
+       const previous=candidate.coords;
+       const between=map.distance([previous.latitude,previous.longitude],[c.latitude,c.longitude]);
+       if(between<=Math.max(30,Math.max(previous.speed||0,c.speed||0)*((position.timestamp-candidate.timestamp)/1000)+previous.accuracy+c.accuracy)){
+        following=true;manualHold=false;anchor=candidate=null;
+       }else candidate=position;
+      }else if(!candidate||position.timestamp-candidate.timestamp>20000)candidate=position;
+     }else candidate=null;
+    }else candidate=null;
+   }
+   if(!following)return;
+   const point=[position.coords.latitude,position.coords.longitude];
+   if(!viewChosen){map.setView(point,16);viewChosen=true;}
+   else if(map.latLngToContainerPoint(point).distanceTo(map.getSize().divideBy(2))>2){
+    // Follow position without changing a manually chosen scale.
+    map.panTo(point,{animate:true,duration:1});
+   }
+  }
+  function recenter(){
+   following=true;manualHold=false;anchor=candidate=null;
+   if(latest){
+    map.stop();map.flyTo([latest.coords.latitude,latest.coords.longitude],viewChosen?map.getZoom():16,{duration:.7});viewChosen=true;
+   }
+  }
+  return {update,pause,recenter,isFollowing:()=>following};
+ }
+ return {create,motion,follow};
 })();

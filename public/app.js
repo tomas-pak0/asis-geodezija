@@ -11,8 +11,23 @@ const mapView=AsisMapView.create(map);
 const markerIcon=L.divIcon({className:'position-icon',html:'<span class="position-marker"></span>',iconSize:[32,32],iconAnchor:[16,16]});
 const movingIcon=L.divIcon({className:'position-icon',html:'<svg class="position-arrow" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 29 28 16 23 3 28Z" fill="#ed3948" stroke="white" stroke-width="2.5" stroke-linejoin="round"/></svg>',iconSize:[32,32],iconAnchor:[16,16]});
 const targetIcon=L.divIcon({className:'target-marker-icon',html:'<span class="target-marker"></span>',iconSize:[26,26],iconAnchor:[13,13]});
-let watcher=null,last=null,pin=null,follow=true,alignment=null,alignmentLayer=null,stationLayer=null,nearestLine=null,xmlAlignments=null,xmlFileName='';
+let watcher=null,last=null,pin=null,alignment=null,alignmentLayer=null,stationLayer=null,nearestLine=null,xmlAlignments=null,xmlFileName='';
+let positionAnimation=null;
+function movePositionMarker(point){
+ if(positionAnimation!==null){cancelAnimationFrame(positionAnimation);positionAnimation=null;}
+ const from=pin.getLatLng();
+ if(document.hidden||map.distance(from,point)>1000){pin.setLatLng(point);return;}
+ const at=performance.now();
+ function frame(now){
+  const t=Math.min(1,(now-at)/700),ease=t*t*(3-2*t);
+  pin.setLatLng([from.lat+(point[0]-from.lat)*ease,from.lng+(point[1]-from.lng)*ease]);
+  if(t<1)positionAnimation=requestAnimationFrame(frame);
+  else{positionAnimation=null;requestSurveyLabels();}
+ }
+ positionAnimation=requestAnimationFrame(frame);
+}
 let target=null,targetMarker=null,targetLine=null,targetFitOnFirstFix=false;
+const mapFollow=AsisMapView.follow(map,()=>{targetFitOnFirstFix=false;});
 let boundary=null,boundaryLayer=null;
 let surveyPoints=[],surveyLayer=null,selectedSurveyIndex=-1,surveyLine=null,surveyMarkers=[],surveyPopupDistance=null;
 let roadRouteLayer=null,roadRouteOrigin=null,roadRouteController=null,roadRouteRequest=0,roadRouteLastRequest=0,roadRouteSummary='',surveyPopupRoute=null,surveyPopupRouteButton=null;
@@ -64,8 +79,6 @@ function stationVisibility(){
  else if(map.hasLayer(stationLayer))stationLayer.remove();
 }
 map.on('zoomend',stationVisibility);
-map.on('dragstart',()=>{follow=false;targetFitOnFirstFix=false});
-map.on('zoomstart',event=>{if(event.originalEvent){follow=false;targetFitOnFirstFix=false}});
 function showAlignment(points,name,startMetres){
  const line=KurAsAlignment.prepare(points);
  alignmentLayer?.remove();stationLayer?.remove();nearestLine?.remove();nearestLine=null;
@@ -115,7 +128,7 @@ function useAlignment(points,name,startMetres){
  $('stationStart').value=startMetres;showAlignment(points,name,startMetres);
  try{localStorage.setItem('asis-alignment',JSON.stringify({points,name,startMetres}))}
  catch{ $('alignmentStatus').textContent+=' Didelės ašies nepavyko išsaugoti: po programėlės paleidimo ją reikės įkelti iš naujo.' }
- map.fitBounds(L.latLngBounds(points),{padding:[35,35],maxZoom:17});follow=false;
+ mapFollow.pause();map.fitBounds(L.latLngBounds(points),{padding:[35,35],maxZoom:17});
 }
 $('alignmentFile').onchange=async event=>{
  const file=event.target.files[0];if(!file)return;
@@ -192,7 +205,7 @@ function showTarget(x,y,save=true,mode='lks'){
  $('targetSystem').value=mode==='wgs'?'wgs':'lks';updateTargetSystem();$('clearTarget').hidden=false;
  $('targetStatus').textContent=last?'Taškas žemėlapyje. Atstumas skaičiuojamas nuo telefono vietos.':'Taškas žemėlapyje. Laukiama telefono vietos matavimo.';
  updateTarget(last?.coords);
- if(last){map.fitBounds(L.latLngBounds([[last.coords.latitude,last.coords.longitude],point]),{padding:[45,45],maxZoom:17});follow=false}
+ if(last){mapFollow.pause();map.fitBounds(L.latLngBounds([[last.coords.latitude,last.coords.longitude],point]),{padding:[45,45],maxZoom:17})}
  else{map.setView(point,16);targetFitOnFirstFix=true}
  if(save)try{localStorage.setItem('asis-target',JSON.stringify({x,y,mode:$('targetSystem').value}))}
  catch{$('targetStatus').textContent+=' Nepavyko išsaugoti taško šiame įrenginyje.'}
@@ -228,7 +241,7 @@ function showSurveyPoints(points,name,skipped=0,save=true){
  surveyPoints=points;surveyLayer=layer.addTo(map);surveyMarkers=markers;selectedSurveyIndex=-1;surveyPopupDistance=surveyPopupRoute=surveyPopupRouteButton=null;
  $('selectedPoint').hidden=true;$('clearPoints').hidden=false;
  $('pointsStatus').textContent=name+' · '+points.length+' taškų'+(skipped?' · praleista netinkamų eilučių: '+skipped:'')+'. Paspausk tašką žemėlapyje.';
- map.fitBounds(L.latLngBounds(points.map(p=>[p.latitude,p.longitude])),{padding:[35,35],maxZoom:17});follow=false;
+ mapFollow.pause();map.fitBounds(L.latLngBounds(points.map(p=>[p.latitude,p.longitude])),{padding:[35,35],maxZoom:17});
  updateSurveyLabels();
  if(save)try{localStorage.setItem('asis-points',JSON.stringify({points,name,skipped}))}
  catch{$('pointsStatus').textContent+=' Nepavyko išsaugoti taškų; kitą kartą failą reikės įkelti iš naujo.'}
@@ -292,7 +305,7 @@ async function calculateRoadRoute(){
   if(gaps.length)L.polyline(gaps,{color:'#55c4ff',weight:2,dashArray:'5,6',interactive:false}).addTo(layer);
   roadRouteLayer?.remove();roadRouteLayer=layer.addTo(map);roadRouteOrigin=origin;
   surveyLine?.remove();surveyLine=null;
-  map.fitBounds(L.latLngBounds([...line,origin,[p.latitude,p.longitude]]),{padding:[35,35],maxZoom:16});follow=false;
+  mapFollow.pause();map.fitBounds(L.latLngBounds([...line,origin,[p.latitude,p.longitude]]),{padding:[35,35],maxZoom:16});
   const distance=route.distance>=1000?(route.distance/1000).toFixed(1).replace('.',',')+' km':Math.round(route.distance)+' m';
   const finalGap=Math.round(data.waypoints?.[1]?.distance||0);
   roadRouteSummary='Privažiavimas keliais: '+distance+(finalGap>10?' · nuo kelio iki taško dar ~'+finalGap+' m tiesiai.':'.');
@@ -357,7 +370,7 @@ function renderBoundary(fit=false){
   boundaryLayer.addTo(map);
  }
  $('boundaryStatus').textContent=boundary.name+' · '+lines.length+' linijų'+(boundary.skipped?' · praleista už Lietuvos ribų: '+boundary.skipped:'')+'.';
- if(fit&&lines.length){map.fitBounds(L.latLngBounds(lines.flat()),{padding:[35,35],maxZoom:17});follow=false}
+ if(fit&&lines.length){mapFollow.pause();map.fitBounds(L.latLngBounds(lines.flat()),{padding:[35,35],maxZoom:17})}
 }
 function showBoundary(parsed,name,save=true){
  if(!Array.isArray(parsed.layers)||!parsed.layers.length)throw Error('Faile nėra matomų linijų.');
@@ -442,21 +455,21 @@ function onPosition(p){
  $('live').textContent='Vieta atnaujinama';$('status').textContent='Rodoma naujausia telefono pateikta vieta.';
  const movement=mapView.update(p),icon=movement.moving?movingIcon:markerIcon;
  if(!pin)pin=L.marker(point,{icon,rotation:movement.moving?movement.heading:0,rotateWithView:true}).addTo(map);
- else{pin.options.rotation=movement.moving?movement.heading:0;pin.setIcon(icon);pin.setLatLng(point);}
+ else{pin.options.rotation=movement.moving?movement.heading:0;pin.setIcon(icon);movePositionMarker(point);}
  updateAlignment(c);
  updateTarget(c);
  updateSurveyDistance(c);
  requestSurveyLabels();
- if(targetFitOnFirstFix&&follow&&target){
+ if(targetFitOnFirstFix&&mapFollow.isFollowing()&&target){
+  mapFollow.pause();
   map.fitBounds(L.latLngBounds([point,[target.latitude,target.longitude]]),{padding:[45,45],maxZoom:17});
-  follow=false;targetFitOnFirstFix=false;
- }else if(follow)map.setView(point,map.getZoom()<14?17:map.getZoom(),{animate:true});
+  targetFitOnFirstFix=false;
+ }
+ mapFollow.update(p);
 }
 $('centerMap').onclick=()=>{
- follow=true;
- if(last)map.setView([last.coords.latitude,last.coords.longitude],17,{animate:true});
- else if(!$('start').disabled)$('start').click();
- else $('status').textContent='Laukiama vietos duomenų.';
+ targetFitOnFirstFix=false;mapFollow.recenter();
+ if(!last){if(!$('start').disabled)$('start').click();else $('status').textContent='Laukiama vietos duomenų.';}
 };
 window.AsisApplyNativePosition=p=>onPosition({timestamp:p.timestamp,coords:p});
 window.AsisApplyNativeLocationError=message=>{

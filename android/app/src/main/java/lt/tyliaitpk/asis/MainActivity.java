@@ -90,6 +90,7 @@ public class MainActivity extends Activity {
         WebViewAssetLoader loader=new WebViewAssetLoader.Builder()
             .addPathHandler("/assets/",new WebViewAssetLoader.AssetsPathHandler(this)).build();
         webView=new WebView(this);webView.setBackgroundColor(0xff101216);
+        webView.setKeepScreenOn(true);
         FrameLayout frame=new FrameLayout(this);frame.setBackgroundColor(0xff101216);
         frame.addView(webView,new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
         if(Build.VERSION.SDK_INT>=35)frame.setOnApplyWindowInsetsListener((view,insets)->{
@@ -229,14 +230,21 @@ public class MainActivity extends Activity {
     @Override protected void onResume(){
         super.onResume();if(webView!=null)webView.onResume();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if(webView!=null)webView.setKeepScreenOn(true);
         if(locationRequested&&pageReady)startLocation();
         if(locationManager!=null&&hasLocationPermission())startTelemetry();
     }
     @Override protected void onPause(){
-        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         stopLocation();
         if(gnssTracking){locationManager.unregisterGnssStatusCallback(gnssCallback);gnssTracking=false;}
         if(webView!=null)webView.onPause();super.onPause();
+    }
+    @Override public void onWindowFocusChanged(boolean hasFocus){
+        super.onWindowFocusChanged(hasFocus);
+        if(hasFocus){
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            if(webView!=null)webView.setKeepScreenOn(true);
+        }
     }
     @Override protected void onDestroy(){
         stopLocation();

@@ -1,0 +1,52 @@
+name: Clean old Ašis build artifacts
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cleanup-artifacts.yml']
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: asis-artifact-cleanup
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Keep two newest artifacts of each known build type
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const allowed = new Set(['asis-debug-apk', 'asis-unsigned-apk', 'asis-unsigned-aab', 'asis-play-screenshots', 'android-startup-log']);
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              ...context.repo, per_page: 100
+            });
+            const live = artifacts.filter(a => !a.expired && allowed.has(a.name))
+              .sort((a,b) => Date.parse(b.created_at) - Date.parse(a.created_at) || b.id - a.id);
+            const counts = new Map();
+            const cutoff = Date.now() - 24*60*60*1000;
+            const candidates = [];
+            const kept = [];
+            for (const artifact of live) {
+              const count = (counts.get(artifact.name) || 0) + 1;
+              counts.set(artifact.name, count);
+              if (count <= 2 || Date.parse(artifact.created_at) >= cutoff) kept.push(artifact);
+              else candidates.push(artifact);
+            }
+            core.info('Keeping: ' + JSON.stringify(kept.map(a => ({id:a.id,name:a.name,created:a.created_at}))));
+            let deleted = 0, bytes = 0;
+            for (const artifact of candidates) {
+              core.info('Removing old build artifact ' + artifact.id + ' ' + artifact.name + ' (' + artifact.created_at + ')');
+              try {
+                await github.rest.actions.deleteArtifact({...context.repo, artifact_id: artifact.id});
+                deleted++; bytes += artifact.size_in_bytes;
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            }
+            core.info('CLEANUP_RESULT ' + JSON.stringify({deleted,bytes,kept:kept.length}));
+            await core.summary.addHeading('Old build artifacts cleaned')
+              .addRaw('Deleted: ' + deleted + '; freed: ' + (bytes/1024/1024).toFixed(2) + ' MiB; kept: ' + kept.length + '.')
+              .write();

@@ -2,6 +2,16 @@
 // Keep Lithuanian as the source language. Translate visible text, including messages
 // produced by file parsers and the native Android location bridge.
 const translations = new Map(Object.entries({
+ 'Foto žemėlapis':'Photo map',
+ 'Žemėlapis':'Map',
+ 'Rodyti foto žemėlapį':'Show photo map',
+ 'Rodyti įprastą žemėlapį':'Show standard map',
+ 'Grąžinti šiaurę į viršų':'Return north to the top',
+ 'Judėjimo kryptis viršuje':'Heading up',
+ 'Šiaurė viršuje':'North up',
+ 'Laukiama judėjimo krypties duomenų.':'Waiting for movement heading data.',
+ 'Žemėlapio fonui reikia interneto.':'Map tiles require internet access.',
+ 'Žemėlapio fono nepavyko atsisiųsti. Patikrink ryšį arba pasirink kitą žemėlapį.':'Could not load map tiles. Check your connection or choose another map.',
  'Vieta · piketažas · atstumas iki ašies':'Location · chainage · distance to alignment',
  'Laukiama vietos leidimo':'Waiting for location permission',
  'Paspausk „Rodyti vietą“ ir suteik vietos leidimą.':'Tap “Show location” and allow location access.',
@@ -247,4 +257,5 @@ if(sessionStorage.getItem('asis-resume-location')==='true'){
  sessionStorage.removeItem('asis-resume-location');
  document.getElementById('start').click();
 }else sessionStorage.removeItem('asis-resume-location');
+
 

@@ -64,6 +64,8 @@ jobs:
             adb shell wm density 440
             adb shell am start -W -n lt.tyliaitpk.asis/.MainActivity
             sleep 10
+            adb shell dumpsys window > window-state.txt
+            grep -q 'KEEP_SCREEN_ON' window-state.txt
             adb exec-out screencap -p > play-screenshot-1.png
             adb shell input swipe 540 1650 540 500 450
             sleep 5
@@ -74,9 +76,12 @@ jobs:
         if: always()
         with:
           name: android-startup-log
-          path: crash-log.txt
+          path: |
+            crash-log.txt
+            window-state.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: asis-play-screenshots
           path: play-screenshot-*.png
+

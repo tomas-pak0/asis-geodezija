@@ -17,6 +17,7 @@ import android.os.Looper;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -36,7 +37,8 @@ public class MainActivity extends Activity {
     private static final String PAGE = ORIGIN + "/assets/index.html";
     private static final String PRIVACY = ORIGIN + "/assets/privacy.html";
     private static final String PRIVACY_EN = ORIGIN + "/assets/privacy.en.html";
-    private static boolean isInternalPage(String url){return PAGE.equals(url)||PRIVACY.equals(url)||PRIVACY_EN.equals(url);}
+    private static final String PRIVACY_RU = ORIGIN + "/assets/privacy.ru.html";
+    private static boolean isInternalPage(String url){return PAGE.equals(url)||PRIVACY.equals(url)||PRIVACY_EN.equals(url)||PRIVACY_RU.equals(url);}
     private static final int LOCATION_REQUEST = 12, FILE_REQUEST = 14;
     private WebView webView;
     private ValueCallback<Uri[]> pendingFiles;
@@ -82,6 +84,7 @@ public class MainActivity extends Activity {
     };
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().setStatusBarColor(0xff101216);getWindow().setNavigationBarColor(0xff101216);
         locationManager=(LocationManager)getSystemService(LOCATION_SERVICE);
         WebViewAssetLoader loader=new WebViewAssetLoader.Builder()
@@ -167,6 +170,9 @@ public class MainActivity extends Activity {
         lastLocation=location;
         String payload="{latitude:"+location.getLatitude()+",longitude:"+location.getLongitude()
             +",accuracy:"+(location.hasAccuracy()?location.getAccuracy():"null")
+            +",speed:"+(location.hasSpeed()?location.getSpeed():"null")
+            +",heading:"+(location.hasBearing()?location.getBearing():"null")
+            +",headingAccuracy:"+(location.hasBearingAccuracy()?location.getBearingAccuracyDegrees():"null")
             +",timestamp:"+location.getTime()+"}";
         sendToPage("window.AsisApplyNativePosition?.("+payload+");");
     }
@@ -222,10 +228,12 @@ public class MainActivity extends Activity {
     }
     @Override protected void onResume(){
         super.onResume();if(webView!=null)webView.onResume();
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if(locationRequested&&pageReady)startLocation();
         if(locationManager!=null&&hasLocationPermission())startTelemetry();
     }
     @Override protected void onPause(){
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         stopLocation();
         if(gnssTracking){locationManager.unregisterGnssStatusCallback(gnssCallback);gnssTracking=false;}
         if(webView!=null)webView.onPause();super.onPause();
@@ -240,4 +248,5 @@ public class MainActivity extends Activity {
         else super.onBackPressed();
     }
 }
+
 

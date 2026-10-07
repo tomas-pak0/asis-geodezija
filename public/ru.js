@@ -1,5 +1,15 @@
 'use strict';
 window.AsisRussian={
+  "Foto žemėlapis": "Фотокарта",
+  "Žemėlapis": "Карта",
+  "Rodyti foto žemėlapį": "Показать фотокарту",
+  "Rodyti įprastą žemėlapį": "Показать обычную карту",
+  "Grąžinti šiaurę į viršų": "Вернуть север наверх",
+  "Judėjimo kryptis viršuje": "По направлению движения",
+  "Šiaurė viršuje": "Север наверху",
+  "Laukiama judėjimo krypties duomenų.": "Ожидание данных о направлении движения.",
+  "Žemėlapio fonui reikia interneto.": "Для фоновой карты нужен интернет.",
+  "Žemėlapio fono nepavyko atsisiųsti. Patikrink ryšį arba pasirink kitą žemėlapį.": "Не удалось загрузить карту. Проверьте соединение или выберите другую карту.",
   "Vieta · piketažas · atstumas iki ašies": "Местоположение · пикетаж · расстояние до оси",
   "Laukiama vietos leidimo": "Ожидание разрешения на местоположение",
   "Paspausk „Rodyti vietą“ ir suteik vietos leidimą.": "Нажмите «Показать местоположение» и разрешите доступ к нему.",
@@ -197,3 +207,4 @@ window.AsisRussian={
   "ant ašies": "на оси",
   "ašyje": "на оси"
 };
+

@@ -5,13 +5,14 @@
 <meta name="theme-color" content="#101216"><meta name="description" content="Vieta, kelio ašis ir piketažas tavo telefone.">
 <title>Ašis · geodezinė vieta</title><link rel="icon" href="icon.svg" type="image/svg+xml">
 <script>window.AsisLanguage=['lt','en','ru'].includes(localStorage.getItem('asis-language'))?localStorage.getItem('asis-language'):'lt';document.documentElement.lang=window.AsisLanguage;</script>
-<link rel="stylesheet" href="vendor/leaflet/leaflet.css"><link rel="stylesheet" href="style.css?v=20">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css"><link rel="stylesheet" href="style.css?v=21">
 </head>
 <body>
 <header><img src="icon.svg" alt=""><div class="header-title"><h1>Ašis</h1><p>Vieta · piketažas · atstumas iki ašies</p></div><details class="language-switch"><summary aria-label="Kalba"><img id="languageFlag" src="flag-lt.svg" alt=""><span id="languageCode">LT</span><span aria-hidden="true">▾</span></summary><div class="language-options" role="group" aria-label="Kalba"><button type="button" data-language="en" lang="en" aria-label="English"><img src="flag-en.svg" alt=""> EN</button><button type="button" data-language="lt" lang="lt" aria-label="Lietuvių"><img src="flag-lt.svg" alt=""> LT</button><button type="button" data-language="ru" lang="ru" aria-label="Русский"><img src="flag-ru.svg" alt=""> RU</button></div></details></header>
 <main>
  <div class="status-line"><span id="live" role="status">Laukiama vietos leidimo</span><span id="updated">Matavimas: –</span></div>
- <div class="map-shell"><div id="map" role="region" aria-label="Vieta ir kelio ašis žemėlapyje"></div><button id="centerMap" type="button">Mano vieta</button></div>
+ <div class="map-shell"><div id="map" role="region" aria-label="Vieta ir kelio ašis žemėlapyje"></div><div class="map-controls"><button id="photoMap" type="button" aria-pressed="false" aria-label="Rodyti foto žemėlapį">Foto žemėlapis</button><button id="compass" type="button" aria-pressed="false" aria-label="Judėjimo kryptis viršuje"><svg id="compassNeedle" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="white" stroke-width="1.5"/><path d="M12 3 16 12 12 10 8 12Z" fill="white"/><path d="M12 21 8 12 12 14 16 12Z" fill="#838b96"/></svg></button><button id="centerMap" type="button">Mano vieta</button></div><span id="mapOrientation" class="map-orientation">Šiaurė viršuje</span></div>
+ <p id="mapHint" class="hint" role="status">Žemėlapio fonui reikia interneto.</p>
  <p id="status" role="status">Paspausk „Rodyti vietą“ ir suteik vietos leidimą.</p>
  <section class="grid" aria-label="Geodeziniai duomenys">
   <div class="card station-card"><span class="label">Piketažas</span><strong id="stationValue">Įkelk ašį</strong></div>
@@ -77,8 +78,9 @@
  <div class="actions location-actions"><button id="start" type="button">Rodyti vietą</button><button id="stop" type="button" class="subtle" disabled>Sustabdyti</button></div>
  <p class="hint">Piketažas rodomas 1 m žingsniu. Atstumas iki ašies, kai jis mažesnis nei 15 m, rodomas 0,01 m žingsniu; toliau – 1 m žingsniu. LKS94 skaičiuojamos iš telefono WGS84 vietos; rodomi skaitmenys po kablelio nereiškia tokio GPS tikslumo. Ašis ir koordinatės lieka šiame įrenginyje, kol pats nepasirenki jų bendrinti. Žemėlapio fonui reikia interneto.</p>
  <p class="hint privacy-link"><a href="privacy.html">Privatumo informacija</a></p>
-<p class="version-footer" style="text-align:center;color:#ed3948;font-size:.82rem;margin:24px 0 8px">Ašis v0.3.2 · © TyliaiTPk · 2026</p>
+<p class="version-footer" style="text-align:center;color:#ed3948;font-size:.82rem;margin:24px 0 8px">Ašis v0.3.3 · © TyliaiTPk · 2026</p>
 </main>
-<script src="vendor/leaflet/leaflet.js"></script><script src="vendor/jszip/jszip.min.js"></script><script src="vendor/dxf-parser/dxf-parser.js"></script><script src="alignment.js?v=5"></script><script src="points.js?v=1"></script><script src="label-layout.js?v=1"></script><script src="boundary.js?v=1"></script><script src="app.js?v=21"></script><script src="ru.js?v=1"></script><script src="i18n.js?v=4"></script>
+<script src="vendor/leaflet/leaflet.js"></script><script src="vendor/leaflet-rotate/leaflet-rotate.umd.min.js"></script><script src="map-view.js?v=1"></script><script src="screen-awake.js?v=1"></script><script src="vendor/jszip/jszip.min.js"></script><script src="vendor/dxf-parser/dxf-parser.js"></script><script src="alignment.js?v=5"></script><script src="points.js?v=1"></script><script src="label-layout.js?v=1"></script><script src="boundary.js?v=1"></script><script src="app.js?v=22"></script><script src="ru.js?v=2"></script><script src="i18n.js?v=5"></script>
 </body></html>
+
 

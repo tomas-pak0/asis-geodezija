@@ -6,11 +6,10 @@ function fileLabel(id,file){
  label.toggleAttribute('data-user-file',Boolean(file));
  label.textContent=file?.name||(window.AsisLanguage==='en'?'No file selected':'Failas nepasirinktas');
 }
-const map=L.map('map',{zoomControl:true,zoomSnap:0,zoomAnimation:true}).setView([55.1694,23.8813],7);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
- attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',maxZoom:19
-}).addTo(map);
-const markerIcon=L.divIcon({className:'',html:'<span class="position-marker"></span>',iconSize:[26,26],iconAnchor:[13,13]});
+const map=L.map('map',{zoomControl:true,zoomSnap:0,zoomDelta:.5,zoomAnimation:true,rotate:true,dragRotate:false,touchRotate:false,maxZoom:22}).setView([55.1694,23.8813],7);
+const mapView=AsisMapView.create(map);
+const markerIcon=L.divIcon({className:'position-icon',html:'<span class="position-marker"></span>',iconSize:[32,32],iconAnchor:[16,16]});
+const movingIcon=L.divIcon({className:'position-icon',html:'<svg class="position-arrow" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 29 28 16 23 3 28Z" fill="#ed3948" stroke="white" stroke-width="2.5" stroke-linejoin="round"/></svg>',iconSize:[32,32],iconAnchor:[16,16]});
 const targetIcon=L.divIcon({className:'target-marker-icon',html:'<span class="target-marker"></span>',iconSize:[26,26],iconAnchor:[13,13]});
 let watcher=null,last=null,pin=null,follow=true,alignment=null,alignmentLayer=null,stationLayer=null,nearestLine=null,xmlAlignments=null,xmlFileName='';
 let target=null,targetMarker=null,targetLine=null,targetFitOnFirstFix=false;
@@ -22,10 +21,10 @@ const selectedSurveyStyle={radius:8,color:'#101216',weight:2,fillColor:'#fff',fi
 const surveyLabelsLayer=L.layerGroup().addTo(map);
 function updateSurveyLabels(){
  surveyLabelsLayer.clearLayers();
- const bounds=map.getBounds(),center=map.getCenter();
- const width=map.distance([center.lat,bounds.getWest()],[center.lat,bounds.getEast()]);
+ const size=map.getSize();
+ const width=map.distance(map.containerPointToLatLng([0,size.y/2]),map.containerPointToLatLng([size.x,size.y/2]));
  if(!$('showPointNumbers').checked||width>1000||!surveyMarkers.length)return;
- const size=map.getSize(),ctx=document.createElement('canvas').getContext('2d');
+ const ctx=document.createElement('canvas').getContext('2d');
  if(ctx)ctx.font='700 11px system-ui';
  const visible=surveyMarkers.map((marker,index)=>{
   const point=map.latLngToContainerPoint(marker.getLatLng());
@@ -47,7 +46,9 @@ function updateSurveyLabels(){
   L.marker(item.marker.getLatLng(),{icon,interactive:false,keyboard:false}).addTo(surveyLabelsLayer);
  }
 }
-map.on('zoomend moveend resize',updateSurveyLabels);
+let surveyLabelsFrame=null;
+function requestSurveyLabels(){if(surveyLabelsFrame===null)surveyLabelsFrame=requestAnimationFrame(()=>{surveyLabelsFrame=null;updateSurveyLabels();});}
+map.on('zoomend moveend resize rotate',requestSurveyLabels);
 $('showPointNumbers').checked=localStorage.getItem('asis-show-point-numbers')!=='false';
 $('showPointNumbers').onchange=()=>{
  localStorage.setItem('asis-show-point-numbers',String($('showPointNumbers').checked));
@@ -439,10 +440,13 @@ function onPosition(p){
  $('share').disabled=false;
  $('accuracy').textContent=Number.isFinite(c.accuracy)?'Apie ±'+Math.round(c.accuracy)+' m':'Nėra duomenų';
  $('live').textContent='Vieta atnaujinama';$('status').textContent='Rodoma naujausia telefono pateikta vieta.';
- if(!pin)pin=L.marker(point,{icon:markerIcon}).addTo(map);else pin.setLatLng(point);
+ const movement=mapView.update(p),icon=movement.moving?movingIcon:markerIcon;
+ if(!pin)pin=L.marker(point,{icon,rotation:movement.moving?movement.heading:0,rotateWithView:true}).addTo(map);
+ else{pin.options.rotation=movement.moving?movement.heading:0;pin.setIcon(icon);pin.setLatLng(point);}
  updateAlignment(c);
  updateTarget(c);
  updateSurveyDistance(c);
+ requestSurveyLabels();
  if(targetFitOnFirstFix&&follow&&target){
   map.fitBounds(L.latLngBounds([point,[target.latitude,target.longitude]]),{padding:[45,45],maxZoom:17});
   follow=false;targetFitOnFirstFix=false;
@@ -483,4 +487,5 @@ $('start').onclick=()=>{
  $('start').disabled=true;$('stop').disabled=false;
 };
 $('stop').onclick=()=>{if(window.AsisNativeLocation)window.AsisNativeLocation.stop();if(watcher!==null)navigator.geolocation.clearWatch(watcher);watcher=null;$('start').disabled=false;$('stop').disabled=true;$('live').textContent='Vieta sustabdyta';$('status').textContent='Vietos stebėjimas sustabdytas.'};
+
 

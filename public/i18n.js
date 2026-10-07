@@ -199,28 +199,31 @@ const translations = new Map(Object.entries({
  'ant ašies':'on alignment',
  'ašyje':'on alignment'
 }));
-const pairs=[...translations].sort((a,b)=>b[0].length-a[0].length);
-function translate(value){
- let result=value;
- for(const [lt,en] of pairs)if(result.includes(lt))result=result.replaceAll(lt,en);
- return result;
-}
+const dictionary=window.AsisLanguage==='ru'?new Map(Object.entries(window.AsisRussian)):translations;
+const keys=[...dictionary.keys()].sort((a,b)=>b.length-a.length);
+const pattern=new RegExp(keys.map(key=>key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|'),'g');
+function translate(value){return String(value).replace(pattern,match=>dictionary.get(match));}
 window.AsisTranslate=translate;
 const buttons=[...document.querySelectorAll('[data-language]')];
 for(const button of buttons){
  button.setAttribute('aria-pressed',String(button.dataset.language===window.AsisLanguage));
  button.addEventListener('click',()=>{
   const next=button.dataset.language;
-  if(next===window.AsisLanguage)return;
+  if(next===window.AsisLanguage){document.querySelector('.language-switch').open=false;return;}
   sessionStorage.setItem('asis-resume-location',String(document.getElementById('start').disabled));
   localStorage.setItem('asis-language',next);
   location.reload();
  });
 }
-if(window.AsisLanguage==='en'){
- document.title='Ašis · survey location';
+const selector=document.querySelector('.language-switch');
+document.getElementById('languageFlag').src='flag-'+window.AsisLanguage+'.svg';
+document.getElementById('languageCode').textContent=window.AsisLanguage.toUpperCase();
+document.addEventListener('click',event=>{if(!selector.contains(event.target))selector.open=false;});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){selector.open=false;selector.querySelector('summary').focus();}});
+if(window.AsisLanguage!=='lt'){
+ document.title=window.AsisLanguage==='ru'?'Ašis · геодезическое местоположение':'Ašis · survey location';
  const privacy=document.querySelector('.privacy-link a');
- privacy.href='privacy.en.html';
+ privacy.href=window.AsisLanguage==='ru'?'privacy.ru.html':'privacy.en.html';
  const translateNodes=root=>{
   if(root.nodeType===Node.TEXT_NODE){
    if(root.parentElement?.closest('[data-user-file]'))return;
@@ -244,3 +247,4 @@ if(sessionStorage.getItem('asis-resume-location')==='true'){
  sessionStorage.removeItem('asis-resume-location');
  document.getElementById('start').click();
 }else sessionStorage.removeItem('asis-resume-location');
+

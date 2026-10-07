@@ -63,7 +63,7 @@ public class MainActivity extends Activity {
             Intent send=new Intent(Intent.ACTION_SEND);
             send.setType("text/plain");
             send.putExtra(Intent.EXTRA_TEXT,text);
-            try{startActivity(Intent.createChooser(send,"en".equals(language)?"Share coordinates":"Bendrinti koordinates"));}
+            try{startActivity(Intent.createChooser(send,"ru".equals(language)?"Поделиться координатами":"en".equals(language)?"Share coordinates":"Bendrinti koordinates"));}
             catch(ActivityNotFoundException ignored){
                 sendToPage("document.getElementById('shareStatus').textContent='Nėra programėlės tekstui bendrinti.';");
             }
@@ -240,3 +240,4 @@ public class MainActivity extends Activity {
         else super.onBackPressed();
     }
 }
+

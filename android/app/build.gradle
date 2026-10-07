@@ -6,8 +6,8 @@ android {
         applicationId 'lt.tyliaitpk.asis'
         minSdk 26
         targetSdk 36
-        versionCode 15
-        versionName '0.3.1'
+        versionCode 16
+        versionName '0.3.2'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -16,3 +16,4 @@ android {
     sourceSets { main { assets.srcDirs = ['../../public'] } }
 }
 dependencies { implementation 'androidx.webkit:webkit:1.14.0' }
+
